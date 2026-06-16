@@ -2,9 +2,11 @@ package com.example.bmupds
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import android.net.Uri
 import android.net.http.SslError
 import android.os.Bundle
 import android.view.ViewGroup
@@ -28,6 +30,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,6 +38,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -54,7 +58,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.google.gson.Gson
 import kotlinx.coroutines.launch
+import okhttp3.*
+import java.io.IOException
 
 private const val PORTAL_URL = "https://pds.bmu.ac.bd/pds/user_mod/pages/home/index.php"
 
@@ -136,17 +143,12 @@ private val INJECT_JS = """
       .oe_topbar_item img { height: 24px !important; width: auto !important; vertical-align: middle !important; }
       td.oe_topbar[style*="height:5px"], td.oe_topbar[style*="height: 5px"] { display: none !important; }
 
-      /* SIDEBAR — hidden on home; below user card on other pages */
-      body.bmu-home-page td.oe_leftbar { display: none !important; }
+      /* SIDEBAR — hidden on home page, shown on other pages */
+      body.bmu-home td.oe_leftbar { display: none !important; }
       td.oe_leftbar {
         display: block !important; width: 100% !important;
         padding: 12px 12px 14px !important; background: var(--bg) !important;
         border-right: none !important; border-bottom: 1px solid var(--border) !important;
-      }
-      #bmu-sidebar-slot {
-        display: block !important; width: 100% !important;
-        padding: 12px 12px 14px !important; background: var(--bg) !important;
-        border-bottom: 1px solid var(--border) !important;
       }
       .oe_secondary_menus_container, .menu_bg, .smartmenu { width: 100% !important; }
       .menu_bg > table, .menu_bg > table > tbody,
@@ -1191,19 +1193,132 @@ private val INJECT_JS = """
   }
 
   /* ════════════════════════════════════════════════════════════════
-     8. DASHBOARD ICON GRID
-     Dashboard only shows tiles for icons in oe_form_buttons.
-     Logout link is extracted from the topbar — NOT duplicated
-     from the nav, so পিডিএস/হাজিরা appear once each.
+     8. COLLECT NAV LINKS FROM SMARTMENU
+     Returns { homeItem, salaryItems, otherItems } parsed from the
+     original smartmenu anchors, regardless of whether the menu has
+     already been transformed.
   ════════════════════════════════════════════════════════════════ */
-  function isHomePage() {
-    return window.location.href.includes('home/index.php');
+  function collectNavLinks() {
+    var result = { homeItem: null, salaryItems: [], otherItems: [] };
+    var smartmenu = document.querySelector('.smartmenu');
+    if (!smartmenu) return result;
+    Array.from(smartmenu.querySelectorAll('a')).forEach(function(a) {
+      var href = a.getAttribute('href') || '';
+      if (!href || href === '#') return;
+      var text = a.textContent.trim();
+      if (href.includes('inventory/home') || text.includes('হোম পেজ') || text.includes('হোম')) {
+        if (!result.homeItem) result.homeItem = { text: text, href: href };
+      } else if (href.includes('salary_ration_money')) {
+        result.salaryItems.push({ text: text, href: href });
+      } else {
+        result.otherItems.push({ text: text, href: href });
+      }
+    });
+    return result;
   }
 
-  function extractNavItems() {
+  /* ════════════════════════════════════════════════════════════════
+     9. DASHBOARD ICON GRID
+     On the home page: sidebar is hidden; tiles for হোম পেজ,
+     বেতন ও ভাতাদি, and আরও অপশন are added alongside পিডিএস and
+     হাজিরা, with লগ আউট always last.
+     On other pages: only the original পিডিএস / হাজিরা / লগ আউট
+     tiles are shown (nav menus appear in the sidebar below the
+     user card).
+  ════════════════════════════════════════════════════════════════ */
+  function buildIconGrid() {
+    if (document.getElementById('bmu-icon-grid')) return;
+    var btnArea = document.querySelector('.oe_form_buttons');
+    if (!btnArea) return;
+    var links = Array.from(btnArea.querySelectorAll('a'));
+    if (!links.length) return;
+
+    var isHome = window.location.href.includes('home/index.php');
+
+    /* Mark body so CSS can hide the sidebar on the home page */
+    if (isHome) document.body.classList.add('bmu-home');
+
+    /* Logout — from topbar only */
+    var logoutHref = 'https://pds.bmu.ac.bd/pds/user_mod/pages/main/logout.php';
+    var topbarLogout = document.querySelector('.oe_topbar_item a[href*="logout"]');
+    if (topbarLogout) logoutHref = topbarLogout.href;
+
+    /* Each link in oe_form_buttons becomes exactly one tile */
+    var matchers = [
+      { test: function(h){ return h.includes('employee_basic'); }, icon:'📋', label:'পি ডি এস' },
+      { test: function(h){ return h.includes('leave') && !h.includes('salary'); }, icon:'📅', label:null },
+      { test: function(h){ return h.includes('attendance') || h.includes('Authenticate'); }, icon:'✅', label:'হাজিরা' }
+    ];
+
+    /* Core tiles (পিডিএস, হাজিরা, …) */
+    var coreTiles = [];
+    var seenHrefs = {};
+    links.forEach(function(a) {
+      var href = a.href || '', text = a.textContent.trim();
+      if (!href || seenHrefs[href]) return;
+      seenHrefs[href] = true;
+      var icon = '🔗', label = text;
+      matchers.forEach(function(mt) { if (mt.test(href)) { icon = mt.icon; label = mt.label || text; } });
+      coreTiles.push({ href: href, label: label, icon: icon });
+    });
+
+    /* On the home page, inject nav tiles before লগ আউট */
+    var allTiles = [];
+    if (isHome) {
+      var nav = collectNavLinks();
+
+      /* Add core tiles first */
+      allTiles = allTiles.concat(coreTiles);
+
+      /* হোম পেজ tile */
+      if (nav.homeItem) {
+        allTiles.push({ href: nav.homeItem.href, label: 'হোম পেজ', icon: '🏠' });
+      }
+
+      /* বেতন ও ভাতাদি tile — links to first salary sub-item */
+      if (nav.salaryItems.length) {
+        allTiles.push({ href: nav.salaryItems[0].href, label: 'বেতন ও ভাতাদি', icon: '💰' });
+      }
+
+      /* আরও অপশন tile — links to first other item */
+      if (nav.otherItems.length) {
+        allTiles.push({ href: nav.otherItems[0].href, label: 'আরও অপশন', icon: '⚙️' });
+      }
+    } else {
+      allTiles = coreTiles;
+    }
+
+    /* লগ আউট always last */
+    allTiles.push({ href: logoutHref, label: 'লগ আউট', icon: '🚪' });
+
+    var grid = document.createElement('div');
+    grid.id = 'bmu-icon-grid';
+    allTiles.forEach(function(t) {
+      var a = document.createElement('a');
+      a.className = 'bmu-tile'; a.href = t.href;
+      a.innerHTML = '<span class="bmu-tile-icon">' + t.icon + '</span><span class="bmu-tile-label">' + t.label + '</span>';
+      grid.appendChild(a);
+    });
+    btnArea.parentNode.insertBefore(grid, btnArea.nextSibling);
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     10. SIDEBAR NAV
+     On the home page this function does nothing — the sidebar is
+     hidden by CSS (.bmu-home td.oe_leftbar { display:none }).
+     On all other pages the sidebar is visible and transformed into
+     the 3-section accordion layout positioned below the user card.
+  ════════════════════════════════════════════════════════════════ */
+  function transformMenu() {
+    /* Skip on home page — sidebar is hidden there */
+    if (window.location.href.includes('home/index.php')) return;
+
     var smartmenu = document.querySelector('.smartmenu');
+    if (!smartmenu || smartmenu.dataset.menuProcessed) return;
+    smartmenu.dataset.menuProcessed = '1';
+
     var homeItem = null, salaryItems = [], otherItems = [];
-    if (!smartmenu) return { homeItem: homeItem, salaryItems: salaryItems, otherItems: otherItems };
+
     Array.from(smartmenu.querySelectorAll('a')).forEach(function(a) {
       var href = a.getAttribute('href') || '';
       if (!href || href === '#') return;
@@ -1216,127 +1331,10 @@ private val INJECT_JS = """
         otherItems.push({ text: text, href: href });
       }
     });
-    return { homeItem: homeItem, salaryItems: salaryItems, otherItems: otherItems };
-  }
-
-  function tileIconForNav(href, text) {
-    if (href.includes('employee_basic') || text.includes('পিডিএস')) return '📋';
-    if (href.includes('attendance') || href.includes('Authenticate') || text.includes('হাজিরা')) return '✅';
-    if (href.includes('inventory/home') || text.includes('হোম')) return '🏠';
-    if (href.includes('salary_ration_money')) return '💰';
-    if (href.includes('report')) return '📊';
-    if (href.includes('leave')) return '📅';
-    return '🔗';
-  }
-
-  function hideHomeSidebar() {
-    if (!isHomePage()) return;
-    document.body.classList.add('bmu-home-page');
-    var leftbar = document.querySelector('td.oe_leftbar');
-    if (leftbar) leftbar.style.display = 'none';
-  }
-
-  function relocateSidebarBelowUserCard() {
-    if (isHomePage()) return;
-    document.body.classList.remove('bmu-home-page');
-    if (document.getElementById('bmu-sidebar-slot')) return;
-    var leftbar = document.querySelector('td.oe_leftbar');
-    var header = document.querySelector('table.oe_view_manager_header');
-    if (!leftbar || !header) return;
-    var menuContainer = leftbar.querySelector('.oe_secondary_menus_container');
-    if (!menuContainer) return;
-    var slot = document.createElement('div');
-    slot.id = 'bmu-sidebar-slot';
-    slot.appendChild(menuContainer);
-    header.parentNode.insertBefore(slot, header.nextSibling);
-    leftbar.style.display = 'none';
-  }
-
-  function buildIconGrid() {
-    if (document.getElementById('bmu-icon-grid')) return;
-    var btnArea = document.querySelector('.oe_form_buttons');
-    if (!btnArea) return;
-    var links = Array.from(btnArea.querySelectorAll('a'));
-    if (!links.length) return;
-
-    var logoutHref = 'https://pds.bmu.ac.bd/pds/user_mod/pages/main/logout.php';
-    var topbarLogout = document.querySelector('.oe_topbar_item a[href*="logout"]');
-    if (topbarLogout) logoutHref = topbarLogout.href;
-
-    var matchers = [
-      { test: function(h){ return h.includes('employee_basic'); }, icon:'📋', label:'পি ডি এস' },
-      { test: function(h){ return h.includes('leave') && !h.includes('salary'); }, icon:'📅', label:null },
-      { test: function(h){ return h.includes('attendance') || h.includes('Authenticate'); }, icon:'✅', label:'হাজিরা' }
-    ];
-    var tiles = [];
-    var seenHrefs = {};
-    links.forEach(function(a) {
-      var href = a.href || '', text = a.textContent.trim();
-      if (!href || seenHrefs[href]) return;
-      seenHrefs[href] = true;
-      var icon = '🔗', label = text;
-      matchers.forEach(function(mt) { if (mt.test(href)) { icon = mt.icon; label = mt.label || text; } });
-      tiles.push({ href: href, label: label, icon: icon });
-    });
-
-    if (isHomePage()) {
-      hideHomeSidebar();
-      var nav = extractNavItems();
-      if (nav.homeItem && !seenHrefs[nav.homeItem.href]) {
-        tiles.push({ href: nav.homeItem.href, label: nav.homeItem.text || 'হোম পেজ', icon: '🏠' });
-        seenHrefs[nav.homeItem.href] = true;
-      }
-      nav.salaryItems.forEach(function(item) {
-        if (!seenHrefs[item.href]) {
-          tiles.push({ href: item.href, label: item.text, icon: tileIconForNav(item.href, item.text) });
-          seenHrefs[item.href] = true;
-        }
-      });
-      nav.otherItems.forEach(function(item) {
-        if (!seenHrefs[item.href]) {
-          tiles.push({ href: item.href, label: item.text, icon: tileIconForNav(item.href, item.text) });
-          seenHrefs[item.href] = true;
-        }
-      });
-    }
-
-    tiles.push({ href: logoutHref, label: 'লগ আউট', icon: '🚪' });
-
-    var grid = document.createElement('div');
-    grid.id = 'bmu-icon-grid';
-    tiles.forEach(function(t) {
-      var a = document.createElement('a');
-      a.className = 'bmu-tile'; a.href = t.href;
-      a.innerHTML = '<span class="bmu-tile-icon">' + t.icon + '</span><span class="bmu-tile-label">' + t.label + '</span>';
-      grid.appendChild(a);
-    });
-    btnArea.parentNode.insertBefore(grid, btnArea.nextSibling);
-  }
-
-  /* ════════════════════════════════════════════════════════════════
-     9. SIDEBAR NAV
-     Layout:
-       হোম পেজ            (flat item, grey left-border)
-       বেতন ও ভাতাদি ▾   (foldable accordion, blue left-border)
-         └ sub-item 1
-         └ sub-item 2
-         └ ...
-       আরও অপশন ▾        (dropdown for everything else)
-  ════════════════════════════════════════════════════════════════ */
-  function transformMenu() {
-    if (isHomePage()) { hideHomeSidebar(); return; }
-    var smartmenu = document.querySelector('.smartmenu');
-    if (!smartmenu || smartmenu.dataset.menuProcessed) {
-      relocateSidebarBelowUserCard();
-      return;
-    }
-    smartmenu.dataset.menuProcessed = '1';
-
-    var nav = extractNavItems();
-    var homeItem = nav.homeItem, salaryItems = nav.salaryItems, otherItems = nav.otherItems;
 
     smartmenu.innerHTML = '';
 
+    /* হোম পেজ — flat item */
     if (homeItem) {
       var homeA = document.createElement('a');
       homeA.className = 'flat-menu-item';
@@ -1345,6 +1343,7 @@ private val INJECT_JS = """
       smartmenu.appendChild(homeA);
     }
 
+    /* বেতন ও ভাতাদি — foldable accordion */
     if (salaryItems.length) {
       var accordion = document.createElement('div');
       accordion.className = 'bmu-salary-accordion';
@@ -1375,6 +1374,7 @@ private val INJECT_JS = """
       smartmenu.appendChild(accordion);
     }
 
+    /* আরও অপশন — dropdown for everything else */
     if (otherItems.length) {
       var container = document.createElement('div');
       container.className = 'custom-bottom-dropdown-container';
@@ -1402,12 +1402,10 @@ private val INJECT_JS = """
       container.appendChild(content);
       smartmenu.appendChild(container);
     }
-
-    relocateSidebarBelowUserCard();
   }
 
   /* ════════════════════════════════════════════════════════════════
-     10. RUN ALL
+     11. RUN ALL
   ════════════════════════════════════════════════════════════════ */
   function runAll() {
     polishLoginPage();
@@ -1439,6 +1437,85 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+data class VersionInfo(
+    val latestVersionCode: Int,
+    val latestVersionName: String,
+    val updateUrl: String
+)
+
+@Composable
+fun GitHubUpdateChecker(context: Context) {
+    var showDialog by remember { mutableStateOf(false) }
+    var updateUrl by remember { mutableStateOf("") }
+    var latestVersionName by remember { mutableStateOf("") }
+
+    val currentVersionCode = remember {
+        try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                packageInfo.longVersionCode.toInt()
+            } else {
+                @Suppress("DEPRECATION")
+                packageInfo.versionCode
+            }
+        } catch (e: Exception) {
+            1
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val jsonUrl = "https://raw.githubusercontent.com/HSaikat/BMUPDS/master/version.json"
+
+        val client = OkHttpClient()
+        val request = Request.Builder()
+            .url(jsonUrl)
+            .header("Cache-Control", "no-cache")
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {}
+
+            override fun onResponse(call: Call, response: Response) {
+                if (!response.isSuccessful) return
+                response.body?.string()?.let { jsonString ->
+                    try {
+                        val versionInfo = Gson().fromJson(jsonString, VersionInfo::class.java)
+                        if (versionInfo.latestVersionCode > currentVersionCode) {
+                            updateUrl = versionInfo.updateUrl
+                            latestVersionName = versionInfo.latestVersionName
+                            showDialog = true
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
+        })
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { },
+            title = { Text(text = "New Update Available!") },
+            text = { Text(text = "Version $latestVersionName is available. Please update the app.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDialog = false
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
+                    context.startActivity(intent)
+                }) {
+                    Text("Update Now")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text("Later")
+                }
+            }
+        )
+    }
+}
+
 private fun isOnline(context: Context): Boolean {
     val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
     val cap = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
@@ -1458,6 +1535,8 @@ fun PortalScreen() {
     val pullState    = rememberPullToRefreshState()
     val scope        = rememberCoroutineScope()
     var webViewRef: WebView? by remember { mutableStateOf(null) }
+
+    GitHubUpdateChecker(context)
 
     LaunchedEffect(Unit) { isOffline = !isOnline(context) }
     BackHandler(enabled = canGoBack) { webViewRef?.goBack() }
