@@ -1194,9 +1194,6 @@ private val INJECT_JS = """
 
   /* ════════════════════════════════════════════════════════════════
      8. COLLECT NAV LINKS FROM SMARTMENU
-     Returns { homeItem, salaryItems, otherItems } parsed from the
-     original smartmenu anchors, regardless of whether the menu has
-     already been transformed.
   ════════════════════════════════════════════════════════════════ */
   function collectNavLinks() {
     var result = { homeItem: null, salaryItems: [], otherItems: [] };
@@ -1219,12 +1216,6 @@ private val INJECT_JS = """
 
   /* ════════════════════════════════════════════════════════════════
      9. DASHBOARD ICON GRID
-     On the home page: sidebar is hidden; tiles for হোম পেজ,
-     বেতন ও ভাতাদি, and আরও অপশন are added alongside পিডিএস and
-     হাজিরা, with লগ আউট always last.
-     On other pages: only the original পিডিএস / হাজিরা / লগ আউট
-     tiles are shown (nav menus appear in the sidebar below the
-     user card).
   ════════════════════════════════════════════════════════════════ */
   function buildIconGrid() {
     if (document.getElementById('bmu-icon-grid')) return;
@@ -1235,22 +1226,18 @@ private val INJECT_JS = """
 
     var isHome = window.location.href.includes('home/index.php');
 
-    /* Mark body so CSS can hide the sidebar on the home page */
     if (isHome) document.body.classList.add('bmu-home');
 
-    /* Logout — from topbar only */
     var logoutHref = 'https://pds.bmu.ac.bd/pds/user_mod/pages/main/logout.php';
     var topbarLogout = document.querySelector('.oe_topbar_item a[href*="logout"]');
     if (topbarLogout) logoutHref = topbarLogout.href;
 
-    /* Each link in oe_form_buttons becomes exactly one tile */
     var matchers = [
       { test: function(h){ return h.includes('employee_basic'); }, icon:'📋', label:'পি ডি এস' },
       { test: function(h){ return h.includes('leave') && !h.includes('salary'); }, icon:'📅', label:null },
       { test: function(h){ return h.includes('attendance') || h.includes('Authenticate'); }, icon:'✅', label:'হাজিরা' }
     ];
 
-    /* Core tiles (পিডিএস, হাজিরা, …) */
     var coreTiles = [];
     var seenHrefs = {};
     links.forEach(function(a) {
@@ -1262,25 +1249,16 @@ private val INJECT_JS = """
       coreTiles.push({ href: href, label: label, icon: icon });
     });
 
-    /* On the home page, inject nav tiles before লগ আউট */
     var allTiles = [];
     if (isHome) {
       var nav = collectNavLinks();
-
-      /* Add core tiles first */
       allTiles = allTiles.concat(coreTiles);
-
-      /* হোম পেজ tile */
       if (nav.homeItem) {
         allTiles.push({ href: nav.homeItem.href, label: 'হোম পেজ', icon: '🏠' });
       }
-
-      /* বেতন ও ভাতাদি tile — links to first salary sub-item */
       if (nav.salaryItems.length) {
         allTiles.push({ href: nav.salaryItems[0].href, label: 'বেতন ও ভাতাদি', icon: '💰' });
       }
-
-      /* আরও অপশন tile — links to first other item */
       if (nav.otherItems.length) {
         allTiles.push({ href: nav.otherItems[0].href, label: 'আরও অপশন', icon: '⚙️' });
       }
@@ -1288,7 +1266,6 @@ private val INJECT_JS = """
       allTiles = coreTiles;
     }
 
-    /* লগ আউট always last */
     allTiles.push({ href: logoutHref, label: 'লগ আউট', icon: '🚪' });
 
     var grid = document.createElement('div');
@@ -1304,13 +1281,8 @@ private val INJECT_JS = """
 
   /* ════════════════════════════════════════════════════════════════
      10. SIDEBAR NAV
-     On the home page this function does nothing — the sidebar is
-     hidden by CSS (.bmu-home td.oe_leftbar { display:none }).
-     On all other pages the sidebar is visible and transformed into
-     the 3-section accordion layout positioned below the user card.
   ════════════════════════════════════════════════════════════════ */
   function transformMenu() {
-    /* Skip on home page — sidebar is hidden there */
     if (window.location.href.includes('home/index.php')) return;
 
     var smartmenu = document.querySelector('.smartmenu');
@@ -1334,7 +1306,6 @@ private val INJECT_JS = """
 
     smartmenu.innerHTML = '';
 
-    /* হোম পেজ — flat item */
     if (homeItem) {
       var homeA = document.createElement('a');
       homeA.className = 'flat-menu-item';
@@ -1343,18 +1314,14 @@ private val INJECT_JS = """
       smartmenu.appendChild(homeA);
     }
 
-    /* বেতন ও ভাতাদি — foldable accordion */
     if (salaryItems.length) {
       var accordion = document.createElement('div');
       accordion.className = 'bmu-salary-accordion';
-
       var accHeader = document.createElement('div');
       accHeader.className = 'bmu-salary-accordion-header';
       accHeader.innerHTML = '<span>বেতন ও ভাতাদি</span><span class="accordion-arrow">▾</span>';
-
       var accBody = document.createElement('div');
       accBody.className = 'bmu-salary-accordion-body';
-
       salaryItems.forEach(function(item) {
         var a = document.createElement('a');
         a.className = 'bmu-salary-sub-item';
@@ -1362,42 +1329,34 @@ private val INJECT_JS = """
         a.textContent = item.text;
         accBody.appendChild(a);
       });
-
       accHeader.addEventListener('click', function(e) {
         e.preventDefault();
         var open = accHeader.classList.toggle('open');
         accBody.style.display = open ? 'block' : 'none';
       });
-
       accordion.appendChild(accHeader);
       accordion.appendChild(accBody);
       smartmenu.appendChild(accordion);
     }
 
-    /* আরও অপশন — dropdown for everything else */
     if (otherItems.length) {
       var container = document.createElement('div');
       container.className = 'custom-bottom-dropdown-container';
-
       var header = document.createElement('div');
       header.className = 'custom-dropdown-header';
       header.innerHTML = '<span>আরও অপশন</span><span class="dropdown-arrow">▾</span>';
-
       var content = document.createElement('div');
       content.className = 'custom-dropdown-content';
-
       otherItems.forEach(function(item) {
         var a = document.createElement('a');
         a.href = item.href; a.textContent = item.text;
         content.appendChild(a);
       });
-
       header.addEventListener('click', function(e) {
         e.preventDefault();
         var open = header.classList.toggle('open');
         content.style.display = open ? 'block' : 'none';
       });
-
       container.appendChild(header);
       container.appendChild(content);
       smartmenu.appendChild(container);
@@ -1405,11 +1364,50 @@ private val INJECT_JS = """
   }
 
   /* ════════════════════════════════════════════════════════════════
-     11. RUN ALL
+     11. MOVE SIDEBAR BELOW USER CARD  (non-home pages only)
+     The original DOM order inside the page is:
+       td.oe_leftbar  (sidebar)
+       td.oe_application
+         └── table.oe_view_manager_header  (user/title card)
+         └── … content …
+     We pull td.oe_leftbar OUT of its original position and re-insert
+     it INSIDE td.oe_application, immediately after the header table,
+     so the visual order becomes: user card → sidebar nav → content.
+  ════════════════════════════════════════════════════════════════ */
+  function moveSidebarBelowUserCard() {
+    if (window.location.href.includes('home/index.php')) return;
+    if (document.getElementById('bmu-sidebar-moved')) return;
+
+    var leftbar = document.querySelector('td.oe_leftbar');
+    if (!leftbar) return;
+    var appArea = document.querySelector('td.oe_application');
+    if (!appArea) return;
+
+    /* Mark so we don't run twice */
+    leftbar.id = 'bmu-sidebar-moved';
+
+    /* Style the leftbar so it fits inline inside appArea */
+    leftbar.style.cssText = 'display:block!important;width:100%!important;padding:12px 12px 14px!important;background:var(--bg)!important;border-right:none!important;border-bottom:1px solid var(--border)!important;box-sizing:border-box!important;';
+
+    /* Find the header table (user/title card) inside appArea */
+    var headerTable = appArea.querySelector('table.oe_view_manager_header');
+
+    if (headerTable) {
+      /* Insert sidebar right after the header table */
+      headerTable.parentNode.insertBefore(leftbar, headerTable.nextSibling);
+    } else {
+      /* Fallback: insert at the very top of appArea */
+      appArea.insertBefore(leftbar, appArea.firstChild);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     12. RUN ALL
   ════════════════════════════════════════════════════════════════ */
   function runAll() {
     polishLoginPage();
     transformMenu();
+    moveSidebarBelowUserCard();
     buildIconGrid();
     rebuildSalaryPage();
     rebuildSalaryListPage();
