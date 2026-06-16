@@ -1668,7 +1668,7 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
                 )
                 Spacer(Modifier.height(10.dp))
                 Text(
-                    "Please check your Wi-Fi or mobile data\nand pull down to try again.",
+                    "Please check your Wi-Fi or Mobile Data\nand try again.",
                     color = Color(0xFF94A3B8), fontSize = 14.sp,
                     textAlign = TextAlign.Center, lineHeight = 22.sp
                 )
@@ -1684,8 +1684,6 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
                     else
                         Text("Try Again", color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
                 }
-                Spacer(Modifier.height(16.dp))
-                Text("↓  or pull down to refresh", color = Color(0xFF94A3B8).copy(alpha = 0.6f), fontSize = 12.sp)
             }
         }
     }
