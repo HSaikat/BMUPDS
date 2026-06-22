@@ -1528,6 +1528,7 @@ fun PortalScreen() {
     val context      = androidx.compose.ui.platform.LocalContext.current
     var isLoading    by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
+    var isPageLoading by remember { mutableStateOf(false) }
     var canGoBack    by remember { mutableStateOf(false) }
     var isOffline    by remember { mutableStateOf<Boolean?>(null) }
     val pullState    = rememberPullToRefreshState()
@@ -1556,78 +1557,112 @@ fun PortalScreen() {
         return
     }
 
-    PullToRefreshBox(
-        state        = pullState,
-        isRefreshing = isRefreshing,
-        onRefresh    = {
-            scope.launch {
-                if (!isOnline(context)) { isOffline = true; isRefreshing = false }
-                else { isRefreshing = true; webViewRef?.reload() }
-            }
-        },
-        modifier = Modifier.fillMaxSize()
-    ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            AndroidView(
-                modifier = Modifier.fillMaxSize(),
-                factory  = { ctx ->
-                    WebView(ctx).apply {
-                        layoutParams = ViewGroup.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT
-                        )
-                        settings.apply {
-                            @Suppress("DEPRECATION") javaScriptEnabled = true
-                            domStorageEnabled    = true
-                            databaseEnabled      = true
-                            useWideViewPort      = true
-                            loadWithOverviewMode = true
-                            cacheMode            = WebSettings.LOAD_DEFAULT
-                            mixedContentMode     = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                            @Suppress("DEPRECATION") setSupportZoom(false)
-                            builtInZoomControls  = false
-                            displayZoomControls  = false
-                        }
-                        webViewClient = object : WebViewClient() {
-                            @SuppressLint("WebViewClientOnReceivedSslError")
-                            override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                                handler?.proceed()
+    Box(modifier = Modifier.fillMaxSize()) {
+        PullToRefreshBox(
+            state        = pullState,
+            isRefreshing = isRefreshing,
+            onRefresh    = {
+                scope.launch {
+                    if (!isOnline(context)) { isOffline = true; isRefreshing = false }
+                    else { isRefreshing = true; webViewRef?.reload() }
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory  = { ctx ->
+                        WebView(ctx).apply {
+                            layoutParams = ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.MATCH_PARENT
+                            )
+                            settings.apply {
+                                @Suppress("DEPRECATION") javaScriptEnabled = true
+                                domStorageEnabled    = true
+                                databaseEnabled      = true
+                                useWideViewPort      = true
+                                loadWithOverviewMode = true
+                                cacheMode            = WebSettings.LOAD_DEFAULT
+                                mixedContentMode     = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                                @Suppress("DEPRECATION") setSupportZoom(false)
+                                builtInZoomControls  = false
+                                displayZoomControls  = false
                             }
-                            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                isLoading = true; isOffline = false
-                                canGoBack = view?.canGoBack() ?: false
-                            }
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                view?.evaluateJavascript(INJECT_JS, null)
-                                isLoading = false; isRefreshing = false
-                                canGoBack = view?.canGoBack() ?: false
-                            }
-                            @Suppress("DEPRECATION")
-                            override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
-                                view?.post {
-                                    if (!isOnline(context)) {
-                                        isOffline = true; isLoading = false; isRefreshing = false
+                            webViewClient = object : WebViewClient() {
+                                @SuppressLint("WebViewClientOnReceivedSslError")
+                                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                                    handler?.proceed()
+                                }
+                                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                                    isLoading = true; isOffline = false
+                                    isPageLoading = true
+                                    canGoBack = view?.canGoBack() ?: false
+                                }
+                                override fun onPageFinished(view: WebView?, url: String?) {
+                                    view?.evaluateJavascript(INJECT_JS, null)
+                                    isLoading = false; isRefreshing = false
+                                    canGoBack = view?.canGoBack() ?: false
+                                    view?.postDelayed({
+                                        isPageLoading = false
+                                    }, 200)
+                                }
+                                @Suppress("DEPRECATION")
+                                override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                                    view?.post {
+                                        if (!isOnline(context)) {
+                                            isOffline = true; isLoading = false; isRefreshing = false
+                                        }
+                                        isPageLoading = false
                                     }
                                 }
+                                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                    view?.loadUrl(request?.url.toString())
+                                    canGoBack = view?.canGoBack() ?: false
+                                    return true
+                                }
                             }
-                            override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                                view?.loadUrl(request?.url.toString())
-                                canGoBack = view?.canGoBack() ?: false
-                                return true
-                            }
+                            loadUrl(PORTAL_URL)
+                            webViewRef = this
                         }
-                        loadUrl(PORTAL_URL)
-                        webViewRef = this
-                    }
-                },
-                update = { wv -> webViewRef = wv }
-            )
-            if (isLoading && !isRefreshing) {
-                CircularProgressIndicator(
-                    modifier    = Modifier.align(Alignment.Center).padding(16.dp),
-                    color       = Color(0xFF2563EB),
-                    strokeWidth = 3.dp
+                    },
+                    update = { wv -> webViewRef = wv }
                 )
+                if (isLoading && !isRefreshing) {
+                    CircularProgressIndicator(
+                        modifier    = Modifier.align(Alignment.Center).padding(16.dp),
+                        color       = Color(0xFF2563EB),
+                        strokeWidth = 3.dp
+                    )
+                }
+            }
+        }
+
+        if (isPageLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF2563EB),
+                        strokeWidth = 4.dp,
+                        modifier = Modifier.size(50.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "P D S",
+                        color = Color(0xFF0F172A),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
