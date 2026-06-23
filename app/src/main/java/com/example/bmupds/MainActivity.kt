@@ -125,15 +125,18 @@ private val INJECT_JS = """
 
       /* TOP BAR */
       .oe_topbar {
-        display: flex !important; align-items: center !important;
+        display: flex !important;
+        align-items: center !important;
         justify-content: space-between !important; flex-wrap: nowrap !important;
-        width: 100% !important; padding: 0 16px !important; height: 56px !important;
+        width: 100% !important; padding: 0 12px !important; height: 66px !important;
         background: var(--white) !important;
         border-bottom: 1px solid var(--border) !important;
         box-shadow: 0 1px 6px rgba(0,0,0,0.07) !important;
-        position: sticky !important; top: 0 !important; z-index: 100 !important;
+        position: sticky !important; top: 0 !important;
+        z-index: 100 !important;
       }
-      .oe_topbar > img { height: 34px !important; width: auto !important; flex-shrink: 0 !important; }
+      .oe_topbar > img { height: 46px !important; width: auto !important;
+        flex-shrink: 0 !important; }
       .oe_systray { display: flex !important; align-items: center !important; gap: 8px !important; flex-shrink: 1 !important; min-width: 0 !important; }
       .oe_topbar_item.oe_topbar_compose_full_email {
         font-size: 12px !important; font-family: var(--fn-bn) !important;
