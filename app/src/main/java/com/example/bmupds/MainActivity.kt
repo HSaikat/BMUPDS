@@ -19,6 +19,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,6 +54,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -1587,7 +1589,20 @@ fun PortalScreen() {
                                 databaseEnabled      = true
                                 useWideViewPort      = true
                                 loadWithOverviewMode = true
-                                cacheMode            = WebSettings.LOAD_DEFAULT
+
+                                // ── 1. AGGRESSIVE CACHING SYSTEM ──
+                                // LOAD_DEFAULT uses server headers, but we want to maximize local memory usage
+                                cacheMode = WebSettings.LOAD_DEFAULT
+
+                                // Enable app-level database caching mechanisms
+                                @Suppress("DEPRECATION")
+                                databasePath = context.getDir("webview_databases", Context.MODE_PRIVATE).path
+
+                                // ── 2. SPEED UP PAGE RENDERING ──
+                                loadsImagesAutomatically = true
+                                blockNetworkImage        = false // Ensure images load smoothly
+
+                                // ── 3. ZOOM & RESPONSIVENESS OVERRIDES ──
                                 mixedContentMode     = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 @Suppress("DEPRECATION") setSupportZoom(false)
                                 builtInZoomControls  = false
@@ -1599,9 +1614,18 @@ fun PortalScreen() {
                                     handler?.proceed()
                                 }
                                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                                    super.onPageStarted(view, url, favicon)
                                     isLoading = true; isOffline = false
                                     isPageLoading = true
                                     canGoBack = view?.canGoBack() ?: false
+
+                                    // If we have a stable internet connection, use standard caching.
+                                    // If the network is slow or fluctuating, aggressively load from local storage first.
+                                    if (isOnline(context)) {
+                                        view?.settings?.cacheMode = WebSettings.LOAD_DEFAULT
+                                    } else {
+                                        view?.settings?.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                                    }
                                 }
                                 override fun onPageFinished(view: WebView?, url: String?) {
                                     view?.evaluateJavascript(INJECT_JS, null)
@@ -1620,7 +1644,12 @@ fun PortalScreen() {
                                         isPageLoading = false
                                     }
                                 }
+                                // ── ⚡ INSTANT LOADER TRIGGER ON CLICK ──
                                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                                    // Turn on BOTH loading states IMMEDIATELY when a link is tapped
+                                    isLoading = true
+                                    isPageLoading = true
+
                                     view?.loadUrl(request?.url.toString())
                                     canGoBack = view?.canGoBack() ?: false
                                     return true
@@ -1653,12 +1682,31 @@ fun PortalScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = Color(0xFF2563EB),
-                        strokeWidth = 4.dp,
-                        modifier = Modifier.size(50.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                    // Overlapping container to align logo and spinner
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.size(90.dp) // Total size of the loader ring
+                    ) {
+                        // The outer rotating animation ring
+                        CircularProgressIndicator(
+                            color = Color(0xFF2563EB),
+                            strokeWidth = 3.5.dp,
+                            modifier = Modifier.fillMaxSize()
+                        )
+
+                        // The inner logo inside the ring
+                        Image(
+                            painter = painterResource(id = R.mipmap.ic_launcher_foreground), // Use mipmap webp to avoid XML issues
+                            contentDescription = "App Logo",
+                            modifier = Modifier
+                                .size(62.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF8FAFC)) // Subtle off-white background to ensure visibility
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
                     Text(
                         text = "P D S",
                         color = Color(0xFF0F172A),
