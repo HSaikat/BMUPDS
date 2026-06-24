@@ -10,20 +10,22 @@ The application injects a customized JavaScript framework and structural CSS ove
 
 * **Adaptive Viewport Overhauls:** Strips hardcoded desktop metadata bounds and forces containers to align with native, adaptive mobile viewport configurations (`width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no`).
 * **Modern Floating Card Login:** Completely re-architects absolute desktop positions on the landing page into a sleek, centered, glassmorphic floating card UI with crisp text fields (`Enter your PDS ID`) and modern high-contrast button layouts.
-* **Fluid Horizontal Swipe Integration:** Fixes critical right-side truncation issues found on internal payroll and report pages. Re-engineers layout groups (`.oe_view_manager_body`, `.oe_list_content`) to use explicit multi-axis rendering rules (`overflow-x: auto !important`) and list container optimizations. This unlocks clean, natural horizontal touch-swiping to reach hidden details (**নীট মোট বেতন**, processing states, and interactive action buttons).
-* **Flat Menu Card Transformations:** Automatically refactors complicated sidebar elements into modern, touch-optimized flat layout links. Secondary tracking entries are grouped smoothly into a single custom mobile accordion dropdown (**আরও বিকল্প ▾**).
-* **Dynamic Theme Remodeling:** Recasts original layouts into a high-contrast, premium dark navigation theme (`#0F172A` / `#111424`), replacing old layout formats with clean white-on-dark branding text assets and custom grid tiles.
+* **Fluid Horizontal Swipe Integration:** Fixes critical right-side truncation issues found on internal payroll and report pages. Re-engineers layout groups (`.oe_view_manager_body`, `.oe_list_content`) to use explicit multi-axis rendering rules (`overflow-x: auto !important`) and list container optimizations.
+* **Native Connection Interceptor Stack:** Features a custom native offline fallback screen. If network connectivity drops or a timeout occurs, the app gracefully intercepts the fault internally and shows a clean, styled layout prompt with manual retry handles rather than raw web browser timeout loops.
+* **Optimized WebView Engine:** Customizes core native `WebView` parameters, enabling `javaScriptEnabled`, `domStorageEnabled`, `databaseEnabled`, and secure `mixedContentMode` policies.
 
 ---
 
-## 🛠️ Architecture & System Framework
+## 🛡️ Robust Document Management & Resilient Architecture
 
-The codebase is built on top of a single-activity structural container that leverages modern Android development standards:
+The app includes advanced platform capabilities and defensive failsafes to guarantee high availability and usability even if server-side layouts or security rules evolve:
 
-* **Jetpack Compose UI:** Employs a fully declarative layout model featuring material-grade component scaffolding (`PullToRefreshBox`, `Surface`, and `Box`).
-* **Native Connection Interceptor Stack:** Features a custom native offline fallback screen. If network connectivity drops or a timeout occurs, the app gracefully intercepts the fault internally and shows a clean, styled layout prompt with manual retry handles rather than raw web browser timeout loops.
-* **Optimized WebView Engine:** Customizes core native `WebView` parameters, enabling `javaScriptEnabled`, `domStorageEnabled`, `databaseEnabled`, and secure `mixedContentMode` policies. It bypasses desktop scaling limitations to keep the forced mobile styles intact.
-* **Asynchronous Refresh Mechanics:** Integrates a material-grade pull-to-refresh state tied directly to asynchronous coroutine scopes (`rememberCoroutineScope`) to handle seamless portal reloads.
+* **Secure File Upload Interception:** Overrides native web file chooser dialogs using a custom `WebChromeClient` tied to Compose state-driven `ActivityResultContracts`. Offloads file selection securely to the native system file manager, granting secure, single-instance read tokens without requiring total app storage access permissions.
+* **Session-Authenticated Download Engine:** Integrates a secure background download handler that forces synchronization of production authentication state via `CookieManager.flush()`. This prevents anonymous or dropped session rejections when downloading salary slips or encrypted documentation.
+* **Android 14 (API 34) Compliance:** Implements asynchronous background broadcast tracking safely utilizing `ContextCompat.registerReceiver` flagged explicitly with `RECEIVER_EXPORTED` status to handle download notifications securely without memory leaks or runtime exceptions.
+* **Dual-Layer Browser Fallbacks:** Implements continuous telemetry error-catching. If a main-frame load failure is encountered or an asynchronous system file download gets blocked by extreme server configurations, it instantly routes the direct resource handle to the device's system browser.
+* **Isolated JavaScript Sandbox Execution:** Wraps custom layout injections inside a self-executing sandbox containing strict browser `try-catch` exception blocks. If server elements change dynamically, scripts fail silently to prevent application freezing or blank screens, protecting the core client container.
+* **Context-Aware Dynamic Desktop Mode:** Includes an intelligent, conditional toggle overlay that surfaces automatically if a structural portal modification breaks custom styles, or if toggled by the user. It instantly replaces User-Agent profiles, switches viewport constraints (`useWideViewPort` / `loadWithOverviewMode`), and bypasses mobile scripts to present the pristine, original desktop system.
 
 ---
 
@@ -32,8 +34,10 @@ The codebase is built on top of a single-activity structural container that leve
 ```text
 bmupds/
 ├── app/
-│   ├── src/main/java/com/example/bmupds/
-│   │   └── MainActivity.kt      # Unified Application Shell & JS Injection Engine
+│   ├── src/main/
+│   │   ├── java/com/example/bmupds/
+│   │   │   └── MainActivity.kt      # Unified Application Shell, JS Injection Engine & Native Receivers
+│   │   └── AndroidManifest.xml      # Hardware, Network, and System Storage Access Manifest
 │   └── build.gradle.kts          # App-level dependencies and SDK configuration
 ├── LICENSE                       # Project Open-Source Licensing Manifest
 └── README.md                     # Technical Documentation File (This File)
@@ -50,4 +54,22 @@ bmupds/
 * Android SDK Platform 34+ (Target SDK: 34, Minimum SDK: 26)
 * Gradle build system configured for Kotlin DSL
 
----
+### 2. Core Manifest Configuration
+
+To ensure seamless execution of background download management and network connectivity handovers, verify the following configurations exist inside your `AndroidManifest.xml`:
+
+```xml
+<manifest xmlns:android="[http://schemas.gestures](http://schemas.gestures)...">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    
+    <application ...>
+        </application>
+</manifest>
+
+```
+
+```
+
+```
