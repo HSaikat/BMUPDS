@@ -1,6 +1,8 @@
 package com.example.bmupds
 
 import android.annotation.SuppressLint
+import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -11,14 +13,18 @@ import android.net.http.SslError
 import android.os.Bundle
 import android.view.ViewGroup
 import android.webkit.SslErrorHandler
+import android.webkit.ValueCallback
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -656,6 +662,124 @@ private val INJECT_JS = """
       }
       #bmu-report-form-wrap .report-option input[type="radio"] { width: 18px !important; height: 18px !important; flex-shrink: 0 !important; }
       #bmu-report-form-wrap .report-option strong { font-size: 13.5px !important; font-family: var(--fn-en) !important; color: var(--text) !important; }
+
+      /* ── ATTENDANCE SYSTEM MOBILE FIXES ───────────────────────── */
+      /* Layout: kill fixed widths, make everything full-width */
+      .wrapper, .page-wrapper, .content-wrapper,
+      #main-wrapper, #page-wrapper {
+        width: 100% !important; min-width: 0 !important;
+        overflow-x: hidden !important;
+      }
+      /* Left sidebar in attendance — hidden on mobile, nav handled by top bar */
+      .left-sidebar, #sidebarnav, .sidebar-nav {
+        display: none !important;
+      }
+      /* Top navbar */
+      .topbar, .navbar, .navbar-default {
+        width: 100% !important; position: sticky !important; top: 0 !important; z-index: 200 !important;
+      }
+      /* iframe inside the attendance page — full viewport height */
+      iframe[name="triger"], #myiframe {
+        width: 100% !important; height: calc(100vh - 120px) !important;
+        min-height: 400px !important; border: none !important;
+        display: block !important;
+      }
+      /* ── BOOTSTRAP MODAL MOBILE FIXES ─────────────────────────── */
+      /* Override Bootstrap's fixed/absolute positioning for mobile */
+      .modal-dialog {
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        min-height: 100vh !important;
+        display: flex !important;
+        align-items: flex-start !important;
+      }
+      .modal-content {
+        width: 100% !important;
+        border-radius: 0 !important;
+        border: none !important;
+        min-height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      .modal-header {
+        padding: 14px 16px !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        flex-shrink: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+      }
+      .modal-title { font-size: 15px !important; font-weight: 700 !important; }
+      .modal-body, .modal-body-lg {
+        flex: 1 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        display: flex !important;
+        flex-direction: column !important;
+      }
+      /* The iframe INSIDE the modal — fill all remaining height */
+      .modal-body iframe, .modal-body-lg iframe {
+        flex: 1 !important;
+        width: 100% !important;
+        height: 100% !important;
+        min-height: calc(100vh - 60px) !important;
+        border: none !important;
+        display: block !important;
+      }
+      /* Close button bigger touch target */
+      .modal-header .close {
+        font-size: 28px !important;
+        line-height: 1 !important;
+        padding: 4px 8px !important;
+        margin: 0 !important;
+        opacity: 0.7 !important;
+      }
+      /* Full-screen modal backdrop */
+      .modal.in, .modal.show { display: flex !important; }
+      .modal-fullscreen .modal-dialog,
+      .force-fullscreen .modal-dialog {
+        width: 100vw !important;
+        max-width: 100vw !important;
+        margin: 0 !important;
+        height: 100vh !important;
+      }
+      .modal-fullscreen .modal-content,
+      .force-fullscreen .modal-content {
+        height: 100vh !important;
+        min-height: 100vh !important;
+        border-radius: 0 !important;
+      }
+      /* Tables inside modals */
+      .modal-body table {
+        width: 100% !important;
+        font-size: 12px !important;
+      }
+      .modal-body th, .modal-body td {
+        padding: 8px 10px !important;
+        white-space: nowrap !important;
+      }
+      /* ── ATTENDANCE PAGE QUICK-ACTION BUTTONS ─────────────────── */
+      .bmu-att-actions {
+        display: flex !important; flex-wrap: wrap !important; gap: 10px !important;
+        padding: 14px 12px !important; background: var(--bg) !important;
+        border-bottom: 1px solid var(--border) !important;
+      }
+      .bmu-att-btn {
+        flex: 1 !important; min-width: 130px !important;
+        display: flex !important; align-items: center !important; justify-content: center !important;
+        gap: 8px !important; padding: 12px 10px !important;
+        background: var(--white) !important; border: 1px solid var(--border) !important;
+        border-radius: var(--r-md) !important; text-decoration: none !important;
+        font-size: 13px !important; font-weight: 600 !important;
+        font-family: var(--fn-en) !important; color: var(--text) !important;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+      }
+      .bmu-att-btn:active { background: var(--bg) !important; }
+      .bmu-att-btn.primary {
+        background: var(--blue) !important; color: #fff !important;
+        border-color: var(--blue2) !important;
+      }
 
       /* LOGIN PAGE */
       html:has(.oe_login_signup), body:has(.oe_login_signup) { height: 100% !important; }
@@ -1370,14 +1494,6 @@ private val INJECT_JS = """
 
   /* ════════════════════════════════════════════════════════════════
      11. MOVE SIDEBAR BELOW USER CARD  (non-home pages only)
-     The original DOM order inside the page is:
-       td.oe_leftbar  (sidebar)
-       td.oe_application
-         └── table.oe_view_manager_header  (user/title card)
-         └── … content …
-     We pull td.oe_leftbar OUT of its original position and re-insert
-     it INSIDE td.oe_application, immediately after the header table,
-     so the visual order becomes: user card → sidebar nav → content.
   ════════════════════════════════════════════════════════════════ */
   function moveSidebarBelowUserCard() {
     if (window.location.href.includes('home/index.php')) return;
@@ -1388,26 +1504,73 @@ private val INJECT_JS = """
     var appArea = document.querySelector('td.oe_application');
     if (!appArea) return;
 
-    /* Mark so we don't run twice */
     leftbar.id = 'bmu-sidebar-moved';
-
-    /* Style the leftbar so it fits inline inside appArea */
     leftbar.style.cssText = 'display:block!important;width:100%!important;padding:12px 12px 14px!important;background:var(--bg)!important;border-right:none!important;border-bottom:1px solid var(--border)!important;box-sizing:border-box!important;';
 
-    /* Find the header table (user/title card) inside appArea */
     var headerTable = appArea.querySelector('table.oe_view_manager_header');
 
     if (headerTable) {
-      /* Insert sidebar right after the header table */
       headerTable.parentNode.insertBefore(leftbar, headerTable.nextSibling);
     } else {
-      /* Fallback: insert at the very top of appArea */
       appArea.insertBefore(leftbar, appArea.firstChild);
     }
   }
 
   /* ════════════════════════════════════════════════════════════════
-     12. RUN ALL
+     12. ATTENDANCE PAGE ENHANCER
+     Detects the SMART ATTENDANCE SYSTEM page (attendance.bmu.ac.bd)
+     and injects a clean quick-action bar with:
+       Attendance Log | Leave Apply | Leave Replace |
+       Leave Report   | Attendance Report
+     The original left sidebar (which hides these links in desktop
+     layout) is hidden via CSS. Links open in the existing "triger"
+     iframe so behaviour matches the original site.
+  ════════════════════════════════════════════════════════════════ */
+  function enhanceAttendancePage() {
+    var url = window.location.href;
+    if (!url.includes('attendance.bmu.ac.bd')) return;
+    if (document.getElementById('bmu-att-bar')) return;
+
+    /* Quick-action buttons to inject */
+    var attLinks = [
+      { label: 'Attendance Log',    icon: '📅', href: 'https://attendance.bmu.ac.bd/hrm/rptActPlan_single/get_liveatt_single.php' },
+      { label: 'Leave Apply',       icon: '📝', href: 'https://attendance.bmu.ac.bd/hrm/employeeLeave_single/employeeLeavegrid.php' },
+      { label: 'Leave Replace',     icon: '🔄', href: 'https://attendance.bmu.ac.bd/hrm/employeeLeave_replace/employeeLeavegrid.php' },
+      { label: 'Leave Report',      icon: '📋', href: 'https://attendance.bmu.ac.bd/hrm/rptaproveLeave_single/aproveLeavegrid.php' },
+      { label: 'Attendance Report', icon: '📊', href: 'https://attendance.bmu.ac.bd/hrm/rptActPlan_single_summary/rptActPlangrid.php', primary: true }
+    ];
+
+    var bar = document.createElement('div');
+    bar.id = 'bmu-att-bar';
+    bar.className = 'bmu-att-actions';
+
+    attLinks.forEach(function(item) {
+      var a = document.createElement('a');
+      a.className = 'bmu-att-btn' + (item.primary ? ' primary' : '');
+      a.href = item.href;
+      a.setAttribute('target', 'triger');
+      a.innerHTML = '<span>' + item.icon + '</span><span>' + item.label + '</span>';
+      bar.appendChild(a);
+    });
+
+    /* Insert bar after the top navbar, before the iframe content area */
+    var insertTarget =
+      document.querySelector('.page-wrapper') ||
+      document.querySelector('#main-wrapper') ||
+      document.querySelector('.content-wrapper') ||
+      document.body;
+
+    /* Try to put it right before the iframe wrapper */
+    var iframeWrap = document.querySelector('#main-wrapper') || document.querySelector('.page-wrapper');
+    if (iframeWrap) {
+      iframeWrap.insertBefore(bar, iframeWrap.firstChild);
+    } else {
+      insertTarget.insertBefore(bar, insertTarget.firstChild);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     13. RUN ALL
   ════════════════════════════════════════════════════════════════ */
   function runAll() {
     polishLoginPage();
@@ -1417,6 +1580,7 @@ private val INJECT_JS = """
     rebuildSalaryPage();
     rebuildSalaryListPage();
     optimizePdsFormPage();
+    enhanceAttendancePage();
   }
 
   runAll();
@@ -1540,6 +1704,34 @@ fun PortalScreen() {
     val scope        = rememberCoroutineScope()
     var webViewRef: WebView? by remember { mutableStateOf(null) }
 
+    // ── ADD THIS AT THE TOP OF PORTALSCREEN() ──
+    var filePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
+    var isDesktopMode by remember { mutableStateOf(false) }
+    var isFailsafeActive by remember { mutableStateOf(false) }
+
+    val mobileUserAgent = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+    val desktopUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
+
+    val fileChooserLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK && result.data != null) {
+            val dataString = result.data?.dataString
+            val clipData = result.data?.clipData
+            if (clipData != null) {
+                val results = Array(clipData.itemCount) { i -> clipData.getItemAt(i).uri }
+                filePathCallback?.onReceiveValue(results)
+            } else if (dataString != null) {
+                filePathCallback?.onReceiveValue(arrayOf(Uri.parse(dataString)))
+            } else {
+                filePathCallback?.onReceiveValue(null)
+            }
+        } else {
+            filePathCallback?.onReceiveValue(null) // Resets state if user backs out
+        }
+        filePathCallback = null
+    }
+
     GitHubUpdateChecker(context)
 
     LaunchedEffect(Unit) { isOffline = !isOnline(context) }
@@ -1589,67 +1781,204 @@ fun PortalScreen() {
                                 databaseEnabled      = true
                                 useWideViewPort      = true
                                 loadWithOverviewMode = true
-
-                                // ── 1. AGGRESSIVE CACHING SYSTEM ──
-                                // LOAD_DEFAULT uses server headers, but we want to maximize local memory usage
-                                cacheMode = WebSettings.LOAD_DEFAULT
-
-                                // Enable app-level database caching mechanisms
+                                cacheMode            = WebSettings.LOAD_DEFAULT
                                 @Suppress("DEPRECATION")
                                 databasePath = context.getDir("webview_databases", Context.MODE_PRIVATE).path
-
-                                // ── 2. SPEED UP PAGE RENDERING ──
                                 loadsImagesAutomatically = true
-                                blockNetworkImage        = false // Ensure images load smoothly
-
-                                // ── 3. ZOOM & RESPONSIVENESS OVERRIDES ──
+                                blockNetworkImage        = false
                                 mixedContentMode     = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
                                 @Suppress("DEPRECATION") setSupportZoom(false)
                                 builtInZoomControls  = false
                                 displayZoomControls  = false
                             }
+
+                            // 1. UPLOAD HANDLER: Intercepts web input field triggers
+                            webChromeClient = object : WebChromeClient() {
+                                override fun onShowFileChooser(
+                                    webView: WebView?,
+                                    filePathCallbackRef: ValueCallback<Array<Uri>>?,
+                                    fileChooserParams: FileChooserParams?
+                                ): Boolean {
+                                    filePathCallback?.onReceiveValue(null)
+                                    filePathCallback = filePathCallbackRef
+
+                                    val intent = fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                                        type = "*/*"
+                                        addCategory(Intent.CATEGORY_OPENABLE)
+                                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                                    }
+                                    try {
+                                        fileChooserLauncher.launch(intent)
+                                    } catch (e: Exception) {
+                                        filePathCallback?.onReceiveValue(null)
+                                        filePathCallback = null
+                                        android.widget.Toast.makeText(ctx, "File picker unavailable", android.widget.Toast.LENGTH_SHORT).show()
+                                        return false
+                                    }
+                                    return true
+                                }
+                            }
+
+                            // 2. DOWNLOAD HANDLER: Pipes web download anchors to Android's native download manager with async fallback
+                            setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                                try {
+                                    val cookieManager = android.webkit.CookieManager.getInstance()
+                                    cookieManager.setAcceptCookie(true)
+                                    cookieManager.flush()
+                                    val cookies = cookieManager.getCookie(url)
+
+                                    val guessedFileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
+
+                                    val request = android.app.DownloadManager.Request(Uri.parse(url)).apply {
+                                        setMimeType(mimetype)
+                                        addRequestHeader("Cookie", cookies)
+                                        addRequestHeader("User-Agent", userAgent)
+                                        setDescription("Downloading document from portal...")
+                                        setTitle(guessedFileName)
+                                        setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                                        setDestinationInExternalPublicDir(
+                                            android.os.Environment.DIRECTORY_DOWNLOADS,
+                                            guessedFileName
+                                        )
+                                    }
+
+                                    val dm = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+                                    val downloadId = dm.enqueue(request)
+                                    android.widget.Toast.makeText(ctx, "Download started...", android.widget.Toast.LENGTH_SHORT).show()
+
+                                    // ── BACKGROUND MONITOR TO CATCH ASYNC FAILURES ──
+                                    val onDownloadCompleteReceiver = object : android.content.BroadcastReceiver() {
+                                        override fun onReceive(context: Context?, intent: Intent?) {
+                                            val id = intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
+                                            if (id == downloadId) {
+                                                val query = android.app.DownloadManager.Query().setFilterById(downloadId)
+                                                val cursor = dm.query(query)
+                                                if (cursor != null && cursor.moveToFirst()) {
+                                                    val statusColumnIndex = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS)
+                                                    if (statusColumnIndex != -1) {
+                                                        val status = cursor.getInt(statusColumnIndex)
+
+                                                        // If the background download failed, trigger the browser fallback automatically
+                                                        if (status == android.app.DownloadManager.STATUS_FAILED) {
+                                                            try {
+                                                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                                }
+                                                                ctx.startActivity(browserIntent)
+                                                                android.widget.Toast.makeText(ctx, "Redirecting to browser download...", android.widget.Toast.LENGTH_SHORT).show()
+                                                            } catch (fallbackException: Exception) {
+                                                                android.widget.Toast.makeText(ctx, "Browser fallback failed", android.widget.Toast.LENGTH_SHORT).show()
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                cursor?.close()
+                                                try {
+                                                    ctx.unregisterReceiver(this) // Unregister to prevent memory leaks
+                                                } catch (e: Exception) { /* Already unregistered */ }
+                                            }
+                                        }
+                                    }
+
+                                    // Register the tracking receiver dynamically
+                                    androidx.core.content.ContextCompat.registerReceiver(
+                                        ctx,
+                                        onDownloadCompleteReceiver,
+                                        android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                                        androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+                                    )
+
+                                } catch (e: Exception) {
+                                    // Immediate/Synchronous fallback if the download manager fails to even start
+                                    try {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                        }
+                                        ctx.startActivity(intent)
+                                    } catch (fallbackException: Exception) {
+                                        android.widget.Toast.makeText(ctx, "Download failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+
                             webViewClient = object : WebViewClient() {
                                 @SuppressLint("WebViewClientOnReceivedSslError")
                                 override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
                                     handler?.proceed()
                                 }
+
                                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                                     super.onPageStarted(view, url, favicon)
                                     isLoading = true; isOffline = false
                                     isPageLoading = true
                                     canGoBack = view?.canGoBack() ?: false
-
-                                    // If we have a stable internet connection, use standard caching.
-                                    // If the network is slow or fluctuating, aggressively load from local storage first.
                                     if (isOnline(context)) {
                                         view?.settings?.cacheMode = WebSettings.LOAD_DEFAULT
                                     } else {
                                         view?.settings?.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
                                     }
                                 }
+
                                 override fun onPageFinished(view: WebView?, url: String?) {
-                                    view?.evaluateJavascript(INJECT_JS, null)
+                                    super.onPageFinished(view, url)
                                     isLoading = false; isRefreshing = false
                                     canGoBack = view?.canGoBack() ?: false
+
+                                    // ── ONLY RUN CUSTOM SCRIPT IF NOT IN DESKTOP MODE ──
+                                    if (!isDesktopMode) {
+                                        view?.evaluateJavascript("""
+                                            (function() {
+                                                try {
+                                                    $INJECT_JS
+                                                    return "success";
+                                                } catch (e) {
+                                                    return "failed";
+                                                }
+                                            })()
+                                        """.trimIndent()) { result ->
+                                            if (result != null && result.contains("failed")) {
+                                                isFailsafeActive = true // Website layout changed!
+                                            } else {
+                                                isFailsafeActive = false
+                                            }
+                                        }
+                                    }
+
                                     view?.postDelayed({
                                         isPageLoading = false
                                     }, 200)
                                 }
-                                @Suppress("DEPRECATION")
-                                override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
-                                    view?.post {
+
+                                override fun onReceivedError(
+                                    view: WebView?,
+                                    request: WebResourceRequest?,
+                                    error: android.webkit.WebResourceError?
+                                ) {
+                                    super.onReceivedError(view, request, error)
+
+                                    // Only trigger the redirect if the failure happens on the main portal webpage itself
+                                    if (request?.isForMainFrame == true) {
                                         if (!isOnline(context)) {
                                             isOffline = true; isLoading = false; isRefreshing = false
+                                        } else {
+                                            val failedUrl = request.url?.toString() ?: PORTAL_URL
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(failedUrl)).apply {
+                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                }
+                                                ctx.startActivity(intent)
+                                                android.widget.Toast.makeText(ctx, "Portal issue detected. Opening in browser...", android.widget.Toast.LENGTH_LONG).show()
+                                            } catch (e: Exception) {
+                                                // If even the browser fails to open, let the WebView handle its default behavior
+                                            }
                                         }
-                                        isPageLoading = false
                                     }
+                                    isPageLoading = false
                                 }
-                                // ── ⚡ INSTANT LOADER TRIGGER ON CLICK ──
+
                                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                                    // Turn on BOTH loading states IMMEDIATELY when a link is tapped
                                     isLoading = true
                                     isPageLoading = true
-
                                     view?.loadUrl(request?.url.toString())
                                     canGoBack = view?.canGoBack() ?: false
                                     return true
@@ -1659,7 +1988,19 @@ fun PortalScreen() {
                             webViewRef = this
                         }
                     },
-                    update = { wv -> webViewRef = wv }
+                    update = { wv ->
+                        webViewRef = wv
+
+                        val targetUA = if (isDesktopMode) desktopUserAgent else mobileUserAgent
+
+                        // Only trigger changes if the mode actually toggled (prevents infinite reload loops)
+                        if (wv.settings.userAgentString != targetUA) {
+                            wv.settings.userAgentString = targetUA
+                            wv.settings.useWideViewPort = isDesktopMode
+                            wv.settings.loadWithOverviewMode = isDesktopMode
+                            wv.reload() // Force page refresh to pull desktop elements
+                        }
+                    }
                 )
                 if (isLoading && !isRefreshing) {
                     CircularProgressIndicator(
@@ -1667,6 +2008,29 @@ fun PortalScreen() {
                         color       = Color(0xFF2563EB),
                         strokeWidth = 3.dp
                     )
+                }
+
+                if (isFailsafeActive || isDesktopMode) {
+                    androidx.compose.material3.FloatingActionButton(
+                        onClick = { isDesktopMode = !isDesktopMode },
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(bottom = 76.dp, end = 16.dp),
+                        containerColor = if (isDesktopMode) androidx.compose.ui.graphics.Color(0xFF1E293B) else androidx.compose.ui.graphics.Color(0xFF2563EB),
+                        contentColor = androidx.compose.ui.graphics.Color.White,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                    ) {
+                        androidx.compose.foundation.layout.Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Text(
+                                text = if (isDesktopMode) "📱 Mobile View" else "🖥️ Desktop View",
+                                fontSize = 14.sp,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1682,31 +2046,25 @@ fun PortalScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    // Overlapping container to align logo and spinner
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(90.dp) // Total size of the loader ring
+                        modifier = Modifier.size(90.dp)
                     ) {
-                        // The outer rotating animation ring
                         CircularProgressIndicator(
                             color = Color(0xFF2563EB),
                             strokeWidth = 3.5.dp,
                             modifier = Modifier.fillMaxSize()
                         )
-
-                        // The inner logo inside the ring
                         Image(
-                            painter = painterResource(id = R.mipmap.ic_launcher_foreground), // Use mipmap webp to avoid XML issues
+                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
                             contentDescription = "App Logo",
                             modifier = Modifier
                                 .size(62.dp)
                                 .clip(CircleShape)
-                                .background(Color(0xFFF8FAFC)) // Subtle off-white background to ensure visibility
+                                .background(Color(0xFFF8FAFC))
                         )
                     }
-
                     Spacer(modifier = Modifier.height(20.dp))
-
                     Text(
                         text = "P D S",
                         color = Color(0xFF0F172A),
