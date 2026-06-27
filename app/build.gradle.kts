@@ -15,8 +15,8 @@ android {
         applicationId = "com.example.bmupds"
         minSdk = 24
         targetSdk = 34
-        versionCode = 8
-        versionName = "4.0.1"
+        versionCode = 9
+        versionName = "4.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }

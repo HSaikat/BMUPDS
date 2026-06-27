@@ -1583,6 +1583,144 @@ private val INJECT_JS = """
     enhanceAttendancePage();
   }
 
+  // ── 🛡️ PDS PORTAL GREYBOX & DYNAMIC IFRAME OPTIMIZATION ENGINE ──
+  (function() {
+    // 1. Re-engineer the parent interface to hold background parts static and resize GreyBox
+    var styleSheet = document.createElement("style");
+    styleSheet.innerText = `
+        /* Lock down parent application background windows */
+        html, body, #u-app-wrapper, .content-wrapper, .content-panel, .h_iframe {
+            max-width: 100vw !important;
+            width: 100% !important;
+            overflow-x: hidden !important; 
+        }
+        
+        #u-topbar {
+            min-width: 100% !important;
+            width: 100% !important;
+            display: flex !important;
+            box-sizing: border-box !important;
+        }
+
+        .content-wrapper {
+            margin-left: 0px !important;
+            padding: 0px !important;
+        }
+
+        /* 🚨 GREYBOX OVERLAY CONTAINER RE-ARCHITECTING */
+        /* Forces the popup window framework to resize beautifully inside mobile screens */
+        #GB_window {
+            left: 8px !important;
+            right: 8px !important;
+            top: 24px !important;
+            width: calc(100vw - 16px) !important;
+            max-width: calc(100vw - 16px) !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Resizes inner content holding headers and iframe elements to match the screen boundaries */
+        #GB_window table.header, 
+        #GB_window .content,
+        iframe[name="GB_frame"],
+        .GB_frame {
+            width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+
+        #GB_overlay {
+            width: 100vw !important;
+            max-width: 100vw !important;
+        }
+
+        /* Bootstrap modal configuration fallback rules */
+        .modal-dialog {
+            margin: 8px !important;
+            width: calc(100% - 16px) !important;
+            max-width: 100vw !important;
+        }
+    `;
+    document.head.appendChild(styleSheet);
+
+    // 2. Core Injection Function to unlock a scrollable canvas layout inside all subframe documents
+    function applyMobileScrollRules(iframeDoc) {
+        if (!iframeDoc || iframeDoc.getElementById('mobile-canvas-scroll-rules')) return;
+
+        var iframeStyle = iframeDoc.createElement('style');
+        iframeStyle.id = 'mobile-canvas-scroll-rules';
+        iframeStyle.innerText = `
+            /* Allow the inner canvas container window to scroll freely sideways */
+            html {
+                width: 100% !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important; /* Smooth touch swipe mechanics */
+            }
+            
+            /* Forces the input form content layout to stretch out naturally if wide */
+            body {
+                width: max-content !important;
+                min-width: 100% !important;
+                overflow-x: visible !important;
+                padding: 8px !important;
+                box-sizing: border-box !important;
+            }
+
+            /* Keeps underlying table elements structured neatly inside scroll frames */
+            table, .table, .table-responsive, .grid-view, .oe_list_content {
+                display: block !important;
+                max-width: 100% !important;
+                overflow-x: visible !important;
+            }
+
+            table tbody {
+                display: table !important;
+                min-width: max-content !important;
+            }
+
+            /* Ensures field labels, headers, and descriptions do not wrap into squished lines */
+            th, td, .control-label, label {
+                white-space: nowrap !important;
+            }
+        `;
+        iframeDoc.head.appendChild(iframeStyle);
+    }
+
+    // 3. Dynamic Multi-Frame Monitoring Engine
+    function scanAndHookIframes() {
+        // Scans through every iframe component on the page (triger, GB_frame, etc.)
+        var iframes = document.querySelectorAll('iframe');
+        iframes.forEach(function(iframe) {
+            try {
+                if (iframe.contentDocument) {
+                    // Update immediately if content is available
+                    applyMobileScrollRules(iframe.contentDocument);
+                    
+                    // Attach listeners to intercept future dynamic document updates or structural shifts
+                    if (!iframe.getAttribute('data-scroll-hooked')) {
+                        iframe.addEventListener('load', function() {
+                            if (iframe.contentDocument) {
+                                applyMobileScrollRules(iframe.contentDocument);
+                            }
+                        });
+                        iframe.setAttribute('data-scroll-hooked', 'true');
+                    }
+                }
+            } catch (e) {
+                console.log("Cross-origin barrier or empty frame state skipped: " + e);
+            }
+        });
+    }
+
+    // Run layout scanning immediately
+    scanAndHookIframes();
+
+    // 4. Continuously observe layout changes to instantly target lazy-loaded GreyBox window instances
+    var observer = new MutationObserver(function() {
+        scanAndHookIframes();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  })();
+
   runAll();
   setTimeout(runAll, 400);
   setTimeout(runAll, 1200);
