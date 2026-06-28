@@ -49,6 +49,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,12 +61,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.google.gson.Gson
 import kotlinx.coroutines.launch
 import okhttp3.*
@@ -1583,141 +1587,82 @@ private val INJECT_JS = """
     enhanceAttendancePage();
   }
 
-  // ── 🛡️ PDS PORTAL GREYBOX & DYNAMIC IFRAME OPTIMIZATION ENGINE ──
+  // ── 🔋 BATTERY-OPTIMIZED UNIVERSAL PDS WORKSPACE ENGINE ──
   (function() {
-    // 1. Re-engineer the parent interface to hold background parts static and resize GreyBox
-    var styleSheet = document.createElement("style");
-    styleSheet.innerText = `
-        /* Lock down parent application background windows */
-        html, body, #u-app-wrapper, .content-wrapper, .content-panel, .h_iframe {
-            max-width: 100vw !important;
-            width: 100% !important;
-            overflow-x: hidden !important; 
-        }
-        
-        #u-topbar {
-            min-width: 100% !important;
-            width: 100% !important;
-            display: flex !important;
-            box-sizing: border-box !important;
-        }
+    // 1. Singleton Style Injection Pattern (Fires once, prevents layout calculations thrashing)
+    if (!document.getElementById('mobile-parent-anchors')) {
+        var styleSheet = document.createElement("style");
+        styleSheet.id = 'mobile-parent-anchors';
+        styleSheet.innerText = `
+            html, body, #u-app-wrapper, .content-wrapper, .content-panel, .h_iframe {
+                max-width: 100vw !important;
+                width: 100% !important;
+                overflow-x: hidden !important; 
+            }
+            #u-topbar { width: 100% !important; display: flex !important; box-sizing: border-box !important; }
+            .content-wrapper { margin-left: 0px !important; padding: 0px !important; }
+            #GB_window { left: 8px !important; right: 8px !important; top: 24px !important; width: calc(100vw - 16px) !important; max-width: calc(100vw - 16px) !important; box-sizing: border-box !important; }
+            #GB_window table.header, #GB_window .content, iframe[name="GB_frame"], .GB_frame { width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+        `;
+        document.head.appendChild(styleSheet);
+    }
 
-        .content-wrapper {
-            margin-left: 0px !important;
-            padding: 0px !important;
-        }
-
-        /* 🚨 GREYBOX OVERLAY CONTAINER RE-ARCHITECTING */
-        /* Forces the popup window framework to resize beautifully inside mobile screens */
-        #GB_window {
-            left: 8px !important;
-            right: 8px !important;
-            top: 24px !important;
-            width: calc(100vw - 16px) !important;
-            max-width: calc(100vw - 16px) !important;
-            box-sizing: border-box !important;
-        }
-
-        /* Resizes inner content holding headers and iframe elements to match the screen boundaries */
-        #GB_window table.header, 
-        #GB_window .content,
-        iframe[name="GB_frame"],
-        .GB_frame {
-            width: 100% !important;
-            max-width: 100% !important;
-            box-sizing: border-box !important;
-        }
-
-        #GB_overlay {
-            width: 100vw !important;
-            max-width: 100vw !important;
-        }
-
-        /* Bootstrap modal configuration fallback rules */
-        .modal-dialog {
-            margin: 8px !important;
-            width: calc(100% - 16px) !important;
-            max-width: 100vw !important;
-        }
-    `;
-    document.head.appendChild(styleSheet);
-
-    // 2. Core Injection Function to unlock a scrollable canvas layout inside all subframe documents
+    // 2. High-Efficiency Subframe Style Evaluator
     function applyMobileScrollRules(iframeDoc) {
         if (!iframeDoc || iframeDoc.getElementById('mobile-canvas-scroll-rules')) return;
 
         var iframeStyle = iframeDoc.createElement('style');
         iframeStyle.id = 'mobile-canvas-scroll-rules';
         iframeStyle.innerText = `
-            /* Allow the inner canvas container window to scroll freely sideways */
-            html {
-                width: 100% !important;
-                overflow-x: auto !important;
-                -webkit-overflow-scrolling: touch !important; /* Smooth touch swipe mechanics */
-            }
+            html { width: 100% !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
+            body { width: max-content !important; min-width: 100% !important; overflow-x: visible !important; padding: 8px !important; box-sizing: border-box !important; }
+            table, .table, .table-responsive, .grid-view, .oe_list_content { display: block !important; max-width: 100% !important; overflow-x: visible !important; }
+            table tbody { display: table !important; min-width: max-content !important; }
+            th, td, .control-label, label { white-space: nowrap !important; }
             
-            /* Forces the input form content layout to stretch out naturally if wide */
-            body {
-                width: max-content !important;
-                min-width: 100% !important;
-                overflow-x: visible !important;
-                padding: 8px !important;
-                box-sizing: border-box !important;
-            }
-
-            /* Keeps underlying table elements structured neatly inside scroll frames */
-            table, .table, .table-responsive, .grid-view, .oe_list_content {
-                display: block !important;
-                max-width: 100% !important;
-                overflow-x: visible !important;
-            }
-
-            table tbody {
-                display: table !important;
-                min-width: max-content !important;
-            }
-
-            /* Ensures field labels, headers, and descriptions do not wrap into squished lines */
-            th, td, .control-label, label {
-                white-space: nowrap !important;
+            /* Structural field item filters */
+            form table.ui-widget-content tr:nth-of-type(1),
+            form table.ui-widget-content tr:nth-of-type(2),
+            .ui-dialog-content table tr:nth-of-type(1),
+            .ui-dialog-content table tr:nth-of-type(2) {
+                display: none !important;
             }
         `;
         iframeDoc.head.appendChild(iframeStyle);
     }
 
-    // 3. Dynamic Multi-Frame Monitoring Engine
+    // 3. Optimized Frame Scan Loop
     function scanAndHookIframes() {
-        // Scans through every iframe component on the page (triger, GB_frame, etc.)
         var iframes = document.querySelectorAll('iframe');
-        iframes.forEach(function(iframe) {
+        for (var i = 0; i < iframes.length; i++) {
+            var iframe = iframes[i];
             try {
                 if (iframe.contentDocument) {
-                    // Update immediately if content is available
                     applyMobileScrollRules(iframe.contentDocument);
-                    
-                    // Attach listeners to intercept future dynamic document updates or structural shifts
-                    if (!iframe.getAttribute('data-scroll-hooked')) {
-                        iframe.addEventListener('load', function() {
-                            if (iframe.contentDocument) {
-                                applyMobileScrollRules(iframe.contentDocument);
-                            }
+                    if (!iframe.hasAttribute('data-scroll-hooked')) {
+                        iframe.addEventListener('load', function(e) {
+                            if (e.target.contentDocument) { applyMobileScrollRules(e.target.contentDocument); }
                         });
                         iframe.setAttribute('data-scroll-hooked', 'true');
                     }
                 }
-            } catch (e) {
-                console.log("Cross-origin barrier or empty frame state skipped: " + e);
-            }
-        });
+            } catch (e) {}
+        }
     }
 
-    // Run layout scanning immediately
+    // Initial low-overhead bootstrap execution pass
     scanAndHookIframes();
 
-    // 4. Continuously observe layout changes to instantly target lazy-loaded GreyBox window instances
+    // 4. DEBOUNCED MUTATION OBSERVER ENGINE (Halts background battery drain)
+    var mutationDebounceTimeout = null;
     var observer = new MutationObserver(function() {
-        scanAndHookIframes();
+        // Clear pending schedules; aggregates hundreds of split-second variations into one single pass
+        clearTimeout(mutationDebounceTimeout);
+        mutationDebounceTimeout = setTimeout(function() {
+            scanAndHookIframes();
+        }, 150); // Waits 150ms for layout shifts to complete entirely before processing
     });
+
     observer.observe(document.body, { childList: true, subtree: true });
   })();
 
@@ -1840,9 +1785,7 @@ fun PortalScreen() {
     var isOffline    by remember { mutableStateOf<Boolean?>(null) }
     val pullState    = rememberPullToRefreshState()
     val scope        = rememberCoroutineScope()
-    var webViewRef: WebView? by remember { mutableStateOf(null) }
 
-    // ── ADD THIS AT THE TOP OF PORTALSCREEN() ──
     var filePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     var isDesktopMode by remember { mutableStateOf(false) }
     var isFailsafeActive by remember { mutableStateOf(false) }
@@ -1865,15 +1808,245 @@ fun PortalScreen() {
                 filePathCallback?.onReceiveValue(null)
             }
         } else {
-            filePathCallback?.onReceiveValue(null) // Resets state if user backs out
+            filePathCallback?.onReceiveValue(null)
         }
         filePathCallback = null
+    }
+
+    val webView = remember {
+        WebView(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
+            )
+            settings.apply {
+                @Suppress("DEPRECATION") javaScriptEnabled = true
+                domStorageEnabled    = true
+                databaseEnabled      = true
+                useWideViewPort      = true
+                loadWithOverviewMode = true
+                cacheMode            = WebSettings.LOAD_DEFAULT
+                @Suppress("DEPRECATION")
+                databasePath = context.getDir("webview_databases", Context.MODE_PRIVATE).path
+                loadsImagesAutomatically = true
+                blockNetworkImage        = false
+                mixedContentMode     = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                @Suppress("DEPRECATION") setSupportZoom(false)
+                builtInZoomControls  = false
+                displayZoomControls  = false
+            }
+
+            webChromeClient = object : WebChromeClient() {
+                override fun onShowFileChooser(
+                    webView: WebView?,
+                    filePathCallbackRef: ValueCallback<Array<Uri>>?,
+                    fileChooserParams: FileChooserParams?
+                ): Boolean {
+                    filePathCallback?.onReceiveValue(null)
+                    filePathCallback = filePathCallbackRef
+
+                    val intent = fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
+                        type = "*/*"
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+                    }
+                    try {
+                        fileChooserLauncher.launch(intent)
+                    } catch (e: Exception) {
+                        filePathCallback?.onReceiveValue(null)
+                        filePathCallback = null
+                        android.widget.Toast.makeText(context, "File picker unavailable", android.widget.Toast.LENGTH_SHORT).show()
+                        return false
+                    }
+                    return true
+                }
+            }
+
+            setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
+                try {
+                    val cookieManager = android.webkit.CookieManager.getInstance()
+                    cookieManager.setAcceptCookie(true)
+                    cookieManager.flush()
+                    val cookies = cookieManager.getCookie(url)
+
+                    val guessedFileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
+
+                    val request = android.app.DownloadManager.Request(Uri.parse(url)).apply {
+                        setMimeType(mimetype)
+                        addRequestHeader("Cookie", cookies)
+                        addRequestHeader("User-Agent", userAgent)
+                        setDescription("Downloading document from portal...")
+                        setTitle(guessedFileName)
+                        setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                        setDestinationInExternalPublicDir(
+                            android.os.Environment.DIRECTORY_DOWNLOADS,
+                            guessedFileName
+                        )
+                    }
+
+                    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+                    val downloadId = dm.enqueue(request)
+                    android.widget.Toast.makeText(context, "Download started...", android.widget.Toast.LENGTH_SHORT).show()
+
+                    val onDownloadCompleteReceiver = object : android.content.BroadcastReceiver() {
+                        override fun onReceive(context: Context?, intent: Intent?) {
+                            val id = intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
+                            if (id == downloadId) {
+                                val query = android.app.DownloadManager.Query().setFilterById(downloadId)
+                                val cursor = dm.query(query)
+                                if (cursor != null && cursor.moveToFirst()) {
+                                    val statusColumnIndex = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS)
+                                    if (statusColumnIndex != -1) {
+                                        val status = cursor.getInt(statusColumnIndex)
+
+                                        if (status == android.app.DownloadManager.STATUS_FAILED) {
+                                            try {
+                                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                }
+                                                context?.startActivity(browserIntent)
+                                                android.widget.Toast.makeText(context, "Redirecting to browser download...", android.widget.Toast.LENGTH_SHORT).show()
+                                            } catch (fallbackException: Exception) {
+                                                android.widget.Toast.makeText(context, "Browser fallback failed", android.widget.Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                }
+                                cursor?.close()
+                                try {
+                                    context?.unregisterReceiver(this)
+                                } catch (e: Exception) { }
+                            }
+                        }
+                    }
+
+                    androidx.core.content.ContextCompat.registerReceiver(
+                        context,
+                        onDownloadCompleteReceiver,
+                        android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                        androidx.core.content.ContextCompat.RECEIVER_EXPORTED
+                    )
+
+                } catch (e: Exception) {
+                    try {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                    } catch (fallbackException: Exception) {
+                        android.widget.Toast.makeText(context, "Download failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+
+            webViewClient = object : WebViewClient() {
+                @SuppressLint("WebViewClientOnReceivedSslError")
+                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
+                    handler?.proceed()
+                }
+
+                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                    super.onPageStarted(view, url, favicon)
+                    isLoading = true; isOffline = false
+                    isPageLoading = true
+                    canGoBack = view?.canGoBack() ?: false
+                    if (isOnline(context)) {
+                        view?.settings?.cacheMode = WebSettings.LOAD_DEFAULT
+                    } else {
+                        view?.settings?.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
+                    }
+                }
+
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
+                    isLoading = false; isRefreshing = false
+                    canGoBack = view?.canGoBack() ?: false
+
+                    if (!isDesktopMode) {
+                        view?.evaluateJavascript("""
+                            (function() {
+                                try {
+                                    $INJECT_JS
+                                    return "success";
+                                } catch (e) {
+                                    return "failed";
+                                }
+                            })()
+                        """.trimIndent()) { result ->
+                            if (result != null && result.contains("failed")) {
+                                isFailsafeActive = true
+                            } else {
+                                isFailsafeActive = false
+                            }
+                        }
+                    }
+
+                    view?.postDelayed({
+                        isPageLoading = false
+                    }, 200)
+                }
+
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: android.webkit.WebResourceError?
+                ) {
+                    super.onReceivedError(view, request, error)
+
+                    if (request?.isForMainFrame == true) {
+                        if (!isOnline(context)) {
+                            isOffline = true; isLoading = false; isRefreshing = false
+                        } else {
+                            val failedUrl = request.url?.toString() ?: PORTAL_URL
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(failedUrl)).apply {
+                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                context.startActivity(intent)
+                                android.widget.Toast.makeText(context, "Portal issue detected. Opening in browser...", android.widget.Toast.LENGTH_LONG).show()
+                            } catch (e: Exception) { }
+                        }
+                    }
+                    isPageLoading = false
+                }
+
+                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                    isLoading = true
+                    isPageLoading = true
+                    view?.loadUrl(request?.url.toString())
+                    canGoBack = view?.canGoBack() ?: false
+                    return true
+                }
+            }
+            loadUrl(PORTAL_URL)
+        }
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> {
+                    webView.onResume()
+                    webView.resumeTimers()
+                }
+                Lifecycle.Event.ON_PAUSE -> {
+                    webView.onPause()
+                    webView.pauseTimers()
+                }
+                else -> {}
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
     GitHubUpdateChecker(context)
 
     LaunchedEffect(Unit) { isOffline = !isOnline(context) }
-    BackHandler(enabled = canGoBack) { webViewRef?.goBack() }
+    BackHandler(enabled = canGoBack) { webView.goBack() }
 
     if (isOffline == null) return
 
@@ -1884,7 +2057,7 @@ fun PortalScreen() {
                 if (isOnline(context)) {
                     isOffline = false
                     isLoading = true
-                    webViewRef?.loadUrl(PORTAL_URL)
+                    webView.loadUrl(PORTAL_URL)
                 }
                 isRefreshing = false
             }
@@ -1899,7 +2072,7 @@ fun PortalScreen() {
             onRefresh    = {
                 scope.launch {
                     if (!isOnline(context)) { isOffline = true; isRefreshing = false }
-                    else { isRefreshing = true; webViewRef?.reload() }
+                    else { isRefreshing = true; webView.reload() }
                 }
             },
             modifier = Modifier.fillMaxSize()
@@ -1907,236 +2080,15 @@ fun PortalScreen() {
             Box(modifier = Modifier.fillMaxSize()) {
                 AndroidView(
                     modifier = Modifier.fillMaxSize(),
-                    factory  = { ctx ->
-                        WebView(ctx).apply {
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT
-                            )
-                            settings.apply {
-                                @Suppress("DEPRECATION") javaScriptEnabled = true
-                                domStorageEnabled    = true
-                                databaseEnabled      = true
-                                useWideViewPort      = true
-                                loadWithOverviewMode = true
-                                cacheMode            = WebSettings.LOAD_DEFAULT
-                                @Suppress("DEPRECATION")
-                                databasePath = context.getDir("webview_databases", Context.MODE_PRIVATE).path
-                                loadsImagesAutomatically = true
-                                blockNetworkImage        = false
-                                mixedContentMode     = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                                @Suppress("DEPRECATION") setSupportZoom(false)
-                                builtInZoomControls  = false
-                                displayZoomControls  = false
-                            }
-
-                            // 1. UPLOAD HANDLER: Intercepts web input field triggers
-                            webChromeClient = object : WebChromeClient() {
-                                override fun onShowFileChooser(
-                                    webView: WebView?,
-                                    filePathCallbackRef: ValueCallback<Array<Uri>>?,
-                                    fileChooserParams: FileChooserParams?
-                                ): Boolean {
-                                    filePathCallback?.onReceiveValue(null)
-                                    filePathCallback = filePathCallbackRef
-
-                                    val intent = fileChooserParams?.createIntent() ?: Intent(Intent.ACTION_GET_CONTENT).apply {
-                                        type = "*/*"
-                                        addCategory(Intent.CATEGORY_OPENABLE)
-                                        putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
-                                    }
-                                    try {
-                                        fileChooserLauncher.launch(intent)
-                                    } catch (e: Exception) {
-                                        filePathCallback?.onReceiveValue(null)
-                                        filePathCallback = null
-                                        android.widget.Toast.makeText(ctx, "File picker unavailable", android.widget.Toast.LENGTH_SHORT).show()
-                                        return false
-                                    }
-                                    return true
-                                }
-                            }
-
-                            // 2. DOWNLOAD HANDLER: Pipes web download anchors to Android's native download manager with async fallback
-                            setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
-                                try {
-                                    val cookieManager = android.webkit.CookieManager.getInstance()
-                                    cookieManager.setAcceptCookie(true)
-                                    cookieManager.flush()
-                                    val cookies = cookieManager.getCookie(url)
-
-                                    val guessedFileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
-
-                                    val request = android.app.DownloadManager.Request(Uri.parse(url)).apply {
-                                        setMimeType(mimetype)
-                                        addRequestHeader("Cookie", cookies)
-                                        addRequestHeader("User-Agent", userAgent)
-                                        setDescription("Downloading document from portal...")
-                                        setTitle(guessedFileName)
-                                        setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                                        setDestinationInExternalPublicDir(
-                                            android.os.Environment.DIRECTORY_DOWNLOADS,
-                                            guessedFileName
-                                        )
-                                    }
-
-                                    val dm = ctx.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
-                                    val downloadId = dm.enqueue(request)
-                                    android.widget.Toast.makeText(ctx, "Download started...", android.widget.Toast.LENGTH_SHORT).show()
-
-                                    // ── BACKGROUND MONITOR TO CATCH ASYNC FAILURES ──
-                                    val onDownloadCompleteReceiver = object : android.content.BroadcastReceiver() {
-                                        override fun onReceive(context: Context?, intent: Intent?) {
-                                            val id = intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
-                                            if (id == downloadId) {
-                                                val query = android.app.DownloadManager.Query().setFilterById(downloadId)
-                                                val cursor = dm.query(query)
-                                                if (cursor != null && cursor.moveToFirst()) {
-                                                    val statusColumnIndex = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS)
-                                                    if (statusColumnIndex != -1) {
-                                                        val status = cursor.getInt(statusColumnIndex)
-
-                                                        // If the background download failed, trigger the browser fallback automatically
-                                                        if (status == android.app.DownloadManager.STATUS_FAILED) {
-                                                            try {
-                                                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                                                }
-                                                                ctx.startActivity(browserIntent)
-                                                                android.widget.Toast.makeText(ctx, "Redirecting to browser download...", android.widget.Toast.LENGTH_SHORT).show()
-                                                            } catch (fallbackException: Exception) {
-                                                                android.widget.Toast.makeText(ctx, "Browser fallback failed", android.widget.Toast.LENGTH_SHORT).show()
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                                cursor?.close()
-                                                try {
-                                                    ctx.unregisterReceiver(this) // Unregister to prevent memory leaks
-                                                } catch (e: Exception) { /* Already unregistered */ }
-                                            }
-                                        }
-                                    }
-
-                                    // Register the tracking receiver dynamically
-                                    androidx.core.content.ContextCompat.registerReceiver(
-                                        ctx,
-                                        onDownloadCompleteReceiver,
-                                        android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                                        androidx.core.content.ContextCompat.RECEIVER_EXPORTED
-                                    )
-
-                                } catch (e: Exception) {
-                                    // Immediate/Synchronous fallback if the download manager fails to even start
-                                    try {
-                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                        }
-                                        ctx.startActivity(intent)
-                                    } catch (fallbackException: Exception) {
-                                        android.widget.Toast.makeText(ctx, "Download failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                            }
-
-                            webViewClient = object : WebViewClient() {
-                                @SuppressLint("WebViewClientOnReceivedSslError")
-                                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                                    handler?.proceed()
-                                }
-
-                                override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                    super.onPageStarted(view, url, favicon)
-                                    isLoading = true; isOffline = false
-                                    isPageLoading = true
-                                    canGoBack = view?.canGoBack() ?: false
-                                    if (isOnline(context)) {
-                                        view?.settings?.cacheMode = WebSettings.LOAD_DEFAULT
-                                    } else {
-                                        view?.settings?.cacheMode = WebSettings.LOAD_CACHE_ELSE_NETWORK
-                                    }
-                                }
-
-                                override fun onPageFinished(view: WebView?, url: String?) {
-                                    super.onPageFinished(view, url)
-                                    isLoading = false; isRefreshing = false
-                                    canGoBack = view?.canGoBack() ?: false
-
-                                    // ── ONLY RUN CUSTOM SCRIPT IF NOT IN DESKTOP MODE ──
-                                    if (!isDesktopMode) {
-                                        view?.evaluateJavascript("""
-                                            (function() {
-                                                try {
-                                                    $INJECT_JS
-                                                    return "success";
-                                                } catch (e) {
-                                                    return "failed";
-                                                }
-                                            })()
-                                        """.trimIndent()) { result ->
-                                            if (result != null && result.contains("failed")) {
-                                                isFailsafeActive = true // Website layout changed!
-                                            } else {
-                                                isFailsafeActive = false
-                                            }
-                                        }
-                                    }
-
-                                    view?.postDelayed({
-                                        isPageLoading = false
-                                    }, 200)
-                                }
-
-                                override fun onReceivedError(
-                                    view: WebView?,
-                                    request: WebResourceRequest?,
-                                    error: android.webkit.WebResourceError?
-                                ) {
-                                    super.onReceivedError(view, request, error)
-
-                                    // Only trigger the redirect if the failure happens on the main portal webpage itself
-                                    if (request?.isForMainFrame == true) {
-                                        if (!isOnline(context)) {
-                                            isOffline = true; isLoading = false; isRefreshing = false
-                                        } else {
-                                            val failedUrl = request.url?.toString() ?: PORTAL_URL
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(failedUrl)).apply {
-                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                                }
-                                                ctx.startActivity(intent)
-                                                android.widget.Toast.makeText(ctx, "Portal issue detected. Opening in browser...", android.widget.Toast.LENGTH_LONG).show()
-                                            } catch (e: Exception) {
-                                                // If even the browser fails to open, let the WebView handle its default behavior
-                                            }
-                                        }
-                                    }
-                                    isPageLoading = false
-                                }
-
-                                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-                                    isLoading = true
-                                    isPageLoading = true
-                                    view?.loadUrl(request?.url.toString())
-                                    canGoBack = view?.canGoBack() ?: false
-                                    return true
-                                }
-                            }
-                            loadUrl(PORTAL_URL)
-                            webViewRef = this
-                        }
-                    },
+                    factory  = { webView },
                     update = { wv ->
-                        webViewRef = wv
-
                         val targetUA = if (isDesktopMode) desktopUserAgent else mobileUserAgent
 
-                        // Only trigger changes if the mode actually toggled (prevents infinite reload loops)
                         if (wv.settings.userAgentString != targetUA) {
                             wv.settings.userAgentString = targetUA
                             wv.settings.useWideViewPort = isDesktopMode
                             wv.settings.loadWithOverviewMode = isDesktopMode
-                            wv.reload() // Force page refresh to pull desktop elements
+                            wv.reload()
                         }
                     }
                 )
