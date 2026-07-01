@@ -909,7 +909,16 @@ private val INJECT_JS = """
     var tables = Array.prototype.slice.call(formBody.querySelectorAll('table.oe_form_group'));
     if (!tables.length) return;
 
-    function cellText(td) { if (!td) return ''; return td.textContent.replace(/\s+/g, ' ').trim(); }
+        function cellText(td) {
+      if (!td) return '';
+      var text = td.textContent.replace(/\s+/g, ' ').trim();
+      if (!text) {
+        var input = td.querySelector('input[type="text"]');
+        if (input) return (input.value || '').trim();
+      }
+      return text;
+    }
+
     function hasValue(str) {
       var clean = str.replace(/[০-৯]/g, function(c) { return String.fromCharCode(c.charCodeAt(0) - 0x09E6 + 48); }).trim();
       return !isNaN(parseFloat(clean)) && parseFloat(clean) !== 0;
@@ -1067,8 +1076,46 @@ private val INJECT_JS = """
       wordsCard.innerHTML = '<span class="bmu-slip-inwords-label">In Words</span><span class="bmu-slip-inwords-text">' + inWords + '</span>';
       card.appendChild(wordsCard);
     }
-    formBody.innerHTML = '';
-    formBody.appendChild(card);
+    // Keep the real form controls alive for submission — just hide the raw
+    // tables instead of deleting them (deleting them wiped out every named
+    // input, including NOTE / Attachment / Submit, breaking form submission).
+    var noteField   = formBody.querySelector('textarea[name="note"]');
+    var noteRow     = noteField ? noteField.closest('tr') : null;
+    var attachField = formBody.querySelector('input[name="salaryAttachment"]');
+    var attachRow   = attachField ? attachField.closest('tr') : null;
+    var submitBtn   = formBody.querySelector('input[name="insert"], input[type="submit"]');
+    var submitRow   = submitBtn ? submitBtn.closest('tr') : null;
+
+    tables.forEach(function(tbl) { tbl.style.display = 'none'; });
+
+    Array.prototype.slice.call(formBody.querySelectorAll('h2, h3')).forEach(function(h) {
+      h.style.display = 'none';
+    });
+
+    var actionsWrap = document.createElement('div');
+    actionsWrap.id = 'bmu-salary-actions';
+    actionsWrap.style.cssText = 'padding:0 12px 12px;';
+
+    function buildActionBlock(rowEl) {
+      if (!rowEl) return;
+      var block = document.createElement('div');
+      block.style.cssText = 'background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05);';
+      Array.prototype.slice.call(rowEl.querySelectorAll('td')).forEach(function(td) {
+        while (td.firstChild) block.appendChild(td.firstChild);
+      });
+      var ta = block.querySelector('textarea');
+      if (ta) ta.style.cssText = 'width:100%;min-height:70px;padding:8px 10px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit;font-size:13px;box-sizing:border-box;';
+      var submitInput = block.querySelector('input[type="submit"]');
+      if (submitInput) submitInput.style.cssText = 'width:100%;padding:14px;border:none;border-radius:12px;font-size:15px;font-weight:700;color:#fff;background:#059669;box-shadow:0 2px 8px rgba(5,150,105,0.3);';
+      actionsWrap.appendChild(block);
+    }
+
+    buildActionBlock(noteRow);
+    buildActionBlock(attachRow);
+    buildActionBlock(submitRow);
+
+    formBody.insertBefore(card, formBody.firstChild);
+    formBody.appendChild(actionsWrap);
   }
 
   /* ════════════════════════════════════════════════════════════════
