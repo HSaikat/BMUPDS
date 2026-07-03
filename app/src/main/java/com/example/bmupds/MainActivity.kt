@@ -785,7 +785,7 @@ private val INJECT_JS = """
         border-color: var(--blue2) !important;
       }
 
-      /* LOGIN PAGE */
+      /* LOGIN PAGE — Ivory & Emerald */
       html:has(.oe_login_signup), body:has(.oe_login_signup) { height: 100% !important; }
       .openerp.openerp_webclient_container:has(.oe_login_signup),
       table.oe_webclient:has(.oe_login_signup),
@@ -803,21 +803,28 @@ private val INJECT_JS = """
         display: flex !important; align-items: center !important; justify-content: center !important;
         min-height: 100vh !important; width: 100% !important; padding: 32px 20px !important;
         background:
-          radial-gradient(ellipse at 20% 20%, rgba(37,99,235,0.18) 0%, transparent 60%),
-          radial-gradient(ellipse at 80% 80%, rgba(99,102,241,0.14) 0%, transparent 55%),
-          linear-gradient(145deg, #0a0f1e 0%, #0f172a 40%, #1a1f35 100%) !important;
+          radial-gradient(circle at 14% 12%, rgba(16,96,74,0.07) 0, transparent 42%),
+          radial-gradient(circle at 88% 18%, rgba(201,162,39,0.10) 0, transparent 38%),
+          radial-gradient(circle at 50% 100%, rgba(16,96,74,0.05) 0, transparent 50%),
+          #faf7f0 !important;
+        background-image:
+          radial-gradient(circle at 14% 12%, rgba(16,96,74,0.07) 0, transparent 42%),
+          radial-gradient(circle at 88% 18%, rgba(201,162,39,0.10) 0, transparent 38%),
+          radial-gradient(circle at 50% 100%, rgba(16,96,74,0.05) 0, transparent 50%),
+          radial-gradient(rgba(16,96,74,0.10) 1px, transparent 1px) !important;
+        background-size: auto, auto, auto, 22px 22px !important;
         overflow: hidden !important; position: relative !important;
       }
       .oe_enterprise.oe_login_signup::before {
         content: '' !important; position: fixed !important;
-        top: -80px !important; right: -80px !important; width: 280px !important; height: 280px !important;
-        background: radial-gradient(circle, rgba(37,99,235,0.22) 0%, transparent 70%) !important;
+        top: -70px !important; right: -70px !important; width: 240px !important; height: 240px !important;
+        background: radial-gradient(circle, rgba(16,96,74,0.10) 0%, transparent 70%) !important;
         border-radius: 50% !important; pointer-events: none !important; z-index: 0 !important;
       }
       .oe_enterprise.oe_login_signup::after {
         content: '' !important; position: fixed !important;
-        bottom: -60px !important; left: -60px !important; width: 220px !important; height: 220px !important;
-        background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%) !important;
+        bottom: -50px !important; left: -50px !important; width: 200px !important; height: 200px !important;
+        background: radial-gradient(circle, rgba(201,162,39,0.14) 0%, transparent 70%) !important;
         border-radius: 50% !important; pointer-events: none !important; z-index: 0 !important;
       }
       .oe_enterprise_content {
@@ -830,66 +837,69 @@ private val INJECT_JS = """
       .oe_login_pane.oe_enterprise_pane {
         position: relative !important; top: 0 !important;
         width: 100% !important; max-width: 400px !important; margin: 0 auto !important; padding: 0 !important;
-        background: rgba(255,255,255,0.06) !important; background-image: none !important;
-        border: 1px solid rgba(255,255,255,0.10) !important; border-radius: 24px !important;
-        box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 20px 60px rgba(0,0,0,0.55),
-                    0 8px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+        background: #ffffff !important; background-image: none !important;
+        border: 1px solid rgba(16,96,74,0.10) !important; border-radius: 22px !important;
+        box-shadow: 0 24px 48px rgba(15,43,34,0.10), 0 4px 14px rgba(15,43,34,0.06) !important;
         overflow: hidden !important;
-        backdrop-filter: blur(20px) !important; -webkit-backdrop-filter: blur(20px) !important;
       }
       .oe_enterprise_pane h2 { font-size: 0 !important; margin: 0 !important; padding: 0 !important; line-height: 0 !important; height: 0 !important; overflow: hidden !important; }
       .oe_enterprise_pane > form::before {
-        content: '' !important; display: block !important; width: 100% !important; height: 110px !important;
-        background: linear-gradient(135deg, #1e3a5f 0%, #1a237e 50%, #0d47a1 100%) !important;
+        content: '' !important; display: block !important; width: 100% !important; height: 104px !important;
+        background: linear-gradient(135deg, #0f5132 0%, #10604a 55%, #147a5a 100%) !important;
+        position: relative !important;
       }
       .oe_enterprise_pane > form::after {
         content: '🏛' !important; position: absolute !important;
-        top: 62px !important; left: 50% !important; transform: translateX(-50%) !important;
-        width: 64px !important; height: 64px !important;
-        background: linear-gradient(135deg, #2563eb, #1e40af) !important;
-        border-radius: 50% !important; border: 3px solid rgba(255,255,255,0.15) !important;
-        box-shadow: 0 4px 20px rgba(37,99,235,0.5) !important;
-        font-size: 28px !important; line-height: 64px !important; text-align: center !important; z-index: 2 !important;
+        top: 58px !important; left: 50% !important; transform: translateX(-50%) !important;
+        width: 68px !important; height: 68px !important;
+        background: #ffffff !important;
+        border-radius: 50% !important; border: 3px solid #c9a227 !important;
+        box-shadow: 0 6px 18px rgba(15,43,34,0.22) !important;
+        font-size: 30px !important; line-height: 62px !important; text-align: center !important; z-index: 2 !important;
       }
       .oe_enterprise_pane > form { position: relative !important; margin: 0 !important; padding: 0 !important; display: block !important; }
-      #bmu-login-title { display: block !important; text-align: center !important; padding: 44px 28px 4px !important; font-size: 20px !important; font-weight: 700 !important; font-family: var(--fn-en) !important; color: #fff !important; letter-spacing: 0.3px !important; }
-      #bmu-login-subtitle { display: block !important; text-align: center !important; padding: 0 28px 20px !important; font-size: 13px !important; color: rgba(255,255,255,0.5) !important; font-family: var(--fn-en) !important; }
+      #bmu-login-title { display: block !important; text-align: center !important; padding: 46px 28px 4px !important; font-size: 21px !important; font-weight: 700 !important; font-family: var(--fn-en) !important; color: #14281f !important; letter-spacing: 0.2px !important; }
+      #bmu-login-subtitle { display: block !important; text-align: center !important; padding: 0 28px 8px !important; font-size: 13px !important; color: #6b7a70 !important; font-family: var(--fn-en) !important; }
       .oe_enterprise_pane > form > p { display: none !important; }
       .oe_enterprise_bottom, .oe_login_dbpane { display: none !important; }
       .oe_enterprise_pane fieldset { border: none !important; padding: 0 20px !important; margin: 0 !important; }
-      .oe_enterprise_pane fieldset label { display: block !important; font-size: 11px !important; font-weight: 600 !important; text-transform: uppercase !important; letter-spacing: 0.8px !important; color: rgba(255,255,255,0.45) !important; font-family: var(--fn-en) !important; margin: 18px 0 6px !important; padding: 0 !important; }
+      .oe_enterprise_pane fieldset::before {
+        content: '' !important; display: block !important; width: 40px !important; height: 3px !important;
+        background: #c9a227 !important; border-radius: 2px !important; margin: 18px auto 4px !important;
+      }
+      .oe_enterprise_pane fieldset label { display: block !important; font-size: 11px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.8px !important; color: #10604a !important; font-family: var(--fn-en) !important; margin: 16px 0 6px !important; padding: 0 !important; }
       .oe_enterprise_login_input,
       .oe_enterprise_pane fieldset input[type="text"],
       .oe_enterprise_pane fieldset input[type="password"] {
-        display: block !important; width: 100% !important; height: 52px !important;
-        padding: 0 16px !important; margin: 0 0 12px 0 !important; font-size: 16px !important;
-        font-family: var(--fn-en) !important; color: #fff !important;
-        background: rgba(255,255,255,0.07) !important; background-image: none !important;
-        border: 1.5px solid rgba(255,255,255,0.12) !important; border-radius: 12px !important;
-        outline: none !important; text-shadow: none !important; caret-color: #60a5fa !important;
+        display: block !important; width: 100% !important; height: 50px !important;
+        padding: 0 16px !important; margin: 0 0 12px 0 !important; font-size: 15.5px !important;
+        font-family: var(--fn-en) !important; color: #14281f !important;
+        background: #f6f4ee !important; background-image: none !important;
+        border: 1.5px solid #e5e0d4 !important; border-radius: 12px !important;
+        outline: none !important; text-shadow: none !important; caret-color: #10604a !important;
       }
       .oe_enterprise_login_input:focus,
       .oe_enterprise_pane fieldset input:focus {
-        border-color: rgba(96,165,250,0.7) !important; background: rgba(255,255,255,0.11) !important;
-        box-shadow: 0 0 0 3px rgba(37,99,235,0.25) !important;
+        border-color: #10604a !important; background: #ffffff !important;
+        box-shadow: 0 0 0 3px rgba(16,96,74,0.14) !important;
       }
       .oe_login_error_message.oe_enterprise_error_message {
         margin: 0 20px 12px !important; padding: 10px 14px !important;
-        background: rgba(239,68,68,0.12) !important; border: 1px solid rgba(239,68,68,0.3) !important;
-        border-radius: 10px !important; font-size: 13px !important; color: #fca5a5 !important; font-family: var(--fn-en) !important;
+        background: rgba(200,60,60,0.08) !important; border: 1px solid rgba(200,60,60,0.25) !important;
+        border-radius: 10px !important; font-size: 13px !important; color: #a83232 !important; font-family: var(--fn-en) !important;
       }
       .oe_login_error_message.oe_enterprise_error_message:empty { display: none !important; }
-      .oe_enterprise_submit { padding: 64px 20px 48px !important; margin: 0 !important; }
+      .oe_enterprise_submit { padding: 60px 20px 44px !important; margin: 0 !important; }
       .oe_enterprise_submit button[name="submit"] {
-        display: block !important; width: 100% !important; height: 54px !important;
+        display: block !important; width: 100% !important; height: 52px !important;
         padding: 0 !important; margin: 0 !important; float: none !important;
-        font-size: 16px !important; font-weight: 700 !important; font-family: var(--fn-en) !important;
-        letter-spacing: 0.5px !important; color: #fff !important;
-        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #1e40af 100%) !important;
-        border: none !important; border-radius: 14px !important; cursor: pointer !important; text-shadow: none !important;
-        box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 6px 24px rgba(37,99,235,0.50), 0 2px 8px rgba(0,0,0,0.30) !important;
+        font-size: 15.5px !important; font-weight: 700 !important; font-family: var(--fn-en) !important;
+        letter-spacing: 0.4px !important; color: #ffffff !important;
+        background: linear-gradient(135deg, #10604a 0%, #0f5132 100%) !important;
+        border: none !important; border-radius: 13px !important; cursor: pointer !important; text-shadow: none !important;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 8px 20px rgba(15,96,74,0.28) !important;
       }
-      .oe_enterprise_submit button[name="submit"]:active { opacity: 0.88 !important; }
+      .oe_enterprise_submit button[name="submit"]:active { opacity: 0.9 !important; }
     `;
     document.head.appendChild(st);
   }
@@ -1446,14 +1456,15 @@ private val INJECT_JS = """
       allTiles = coreTiles;
     }
 
-    allTiles.push({ href: logoutHref, label: 'লগ আউট', icon: '🚪' });
+    allTiles.push({ href: logoutHref, label: 'লগ আউট', icon: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>' });
 
     var grid = document.createElement('div');
     grid.id = 'bmu-icon-grid';
     allTiles.forEach(function(t) {
       var a = document.createElement('a');
       a.className = 'bmu-tile'; a.href = t.href;
-      a.innerHTML = '<span class="bmu-tile-icon">' + t.icon + '</span><span class="bmu-tile-label">' + t.label + '</span>';
+      var iconContent = t.icon.startsWith('<svg') ? t.icon : '<span class="bmu-tile-icon">' + t.icon + '</span>';
+      a.innerHTML = iconContent + '<span class="bmu-tile-label">' + t.label + '</span>';
       grid.appendChild(a);
     });
     btnArea.parentNode.insertBefore(grid, btnArea.nextSibling);
