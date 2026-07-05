@@ -67,9 +67,3 @@ To ensure seamless execution of background download management and network conne
     <application ...>
         </application>
 </manifest>
-
-```
-
-```
-
-```
