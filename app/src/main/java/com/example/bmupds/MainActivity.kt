@@ -30,6 +30,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -76,6 +77,7 @@ import okhttp3.*
 import java.io.IOException
 
 private const val PORTAL_URL = "https://pds.bmu.ac.bd/pds/user_mod/pages/home/index.php"
+private var _startUrl: String? = null
 
 private val INJECT_JS = """
 (function() {
@@ -124,6 +126,15 @@ private val INJECT_JS = """
       }
       img { max-width: 100% !important; height: auto !important; }
       blink { animation: none !important; }
+
+      /* Kill BMU announcement modal injected into <body> */
+      #modal-9,
+      body > div[style*="position: fixed"][style*="z-index: 9999"],
+      body > div[style*="position:fixed"][style*="z-index:9999"] {
+        display: none !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
       [style*="font-size:24px"],[style*="font-size: 24px"],
       [style*="font-size:26px"],[style*="font-size: 26px"],
       [style*="font-size:28px"],[style*="font-size: 28px"] { font-size: inherit !important; }
@@ -1363,6 +1374,40 @@ private val INJECT_JS = """
      7. LOGIN PAGE POLISH
   ════════════════════════════════════════════════════════════════ */
   function polishLoginPage() {
+    /* Remove the BMU announcement modal (id="modal-9", "modal-10" etc) */
+    var modal = document.getElementById('modal-9');
+    if (modal) modal.remove();
+
+    /* Catch any fixed full-screen overlay injected into body */
+    Array.prototype.slice.call(document.body.children).forEach(function(el) {
+      if (el.tagName !== 'DIV') return;
+      var s = el.style;
+      if (s.position === 'fixed' && parseInt(s.zIndex) >= 999 &&
+          s.width === '100%' && s.height === '100%') {
+        el.remove();
+      }
+    });
+
+    /* MutationObserver — catches modal injected AFTER page load */
+    if (!window._bmuModalObserver) {
+      window._bmuModalObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mut) {
+          mut.addedNodes.forEach(function(node) {
+            if (node.nodeType !== 1) return;
+            if (/^modal-\d+$/.test(node.id || '')) { node.remove(); return; }
+            var s = node.style || {};
+            if (s.position === 'fixed' && parseInt(s.zIndex) >= 999 && s.width === '100%') {
+              node.remove();
+            }
+          });
+        });
+      });
+      window._bmuModalObserver.observe(document.body, { childList: true });
+      setTimeout(function() {
+        if (window._bmuModalObserver) window._bmuModalObserver.disconnect();
+      }, 8000);
+    }
+
     var pane = document.querySelector('.oe_login_pane.oe_enterprise_pane');
     if (!pane) return;
     var form = pane.querySelector('form');
@@ -1728,6 +1773,125 @@ private val INJECT_JS = """
   setTimeout(runAll, 400);
   setTimeout(runAll, 1200);
 
+  /* ════════════════════════════════════════════════════════════════
+     SALARY BILL SUBMISSION DETECTOR
+     Runs on salary_money_monthly_list.php.
+     Checks the "প্রক্রিয়া অবস্থা" column for a submitted status.
+     If found → calls Android.onBillSubmitted() via the JS bridge.
+  ════════════════════════════════════════════════════════════════ */
+  (function detectBillSubmission() {
+    var url = window.location.href;
+    if (!url.includes('salary_money_monthly_list')) return;
+    if (typeof Android === 'undefined') return;
+
+    // Get current month/year
+    var now   = new Date();
+    var month = now.getMonth();   // 0-based
+    var year  = now.getFullYear();
+
+    // Month name mapping (server uses English abbreviated month names)
+    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+    var curMonthStr = monthNames[month];
+
+    // Find all rows in the salary list table
+    var rows = Array.prototype.slice.call(
+      document.querySelectorAll('table.oe_list_content tbody tr, .bmu-list-row-card')
+    );
+
+    rows.forEach(function(row) {
+      var text = row.textContent || '';
+
+      // Check if this row is for the current month
+      var isCurrentMonth = text.includes(curMonthStr) && text.includes(String(year));
+      if (!isCurrentMonth) return;
+
+      // Check "প্রক্রিয়া অবস্থা" column — submitted statuses
+      var submittedKeywords = [
+        'অনুমোদিত', 'প্রেরিত', 'submitted', 'Submitted',
+        'Approved', 'approved', 'Sent', 'sent',
+        'পরিশোধিত', 'paid', 'Paid'
+      ];
+      var isSubmitted = submittedKeywords.some(function(kw) {
+        return text.includes(kw);
+      });
+
+      // Also consider submitted if there's no "Click to Open" action
+      // (meaning the bill has already been processed past editable state)
+      var hasEditAction = text.includes('Click to Open') || text.includes('বেতন ভাতার ফর্ম');
+
+      if (isSubmitted || !hasEditAction) {
+        Android.onBillSubmitted();
+      }
+    });
+  })();
+
+  /* ════════════════════════════════════════════════════════════════
+     HIDE LOGIN PAGE PROMOTION / BACKGROUND HEADER
+     The live site loads a promotional image/banner into
+     .oe_enterprise_background_header before login.
+     We hide it and remove any injected promo elements.
+  ════════════════════════════════════════════════════════════════ */
+  (function hideLoginPromo() {
+    // Only run on login page
+    if (!document.querySelector('.oe_login_pane')) return;
+
+    // 1. Hide the background header div (contains promo image)
+    var bgHeader = document.querySelector('.oe_enterprise_background_header');
+    if (bgHeader) {
+      bgHeader.style.cssText = 'display:none!important;width:0!important;height:0!important;overflow:hidden!important;';
+    }
+
+    // 2. Remove any <img> tags injected outside the login card
+    var enterprise = document.querySelector('.oe_enterprise.oe_login_signup');
+    if (enterprise) {
+      Array.prototype.slice.call(enterprise.querySelectorAll('img')).forEach(function(img) {
+        // Keep only avatar/logo images (small ones)
+        if (img.naturalWidth > 100 || img.getAttribute('width') > 100) {
+          img.style.display = 'none';
+        }
+      });
+    }
+
+    // 3. Remove inline promo <div>s injected by the server
+    //    (they often have id="promo" or class containing "promo"/"banner"/"notice")
+    var promoSelectors = [
+      '[id*="promo"]','[class*="promo"]',
+      '[id*="banner"]','[class*="banner"]',
+      '[id*="notice"]','[class*="notice"]',
+      '[id*="popup"]','[class*="popup"]',
+      '[id*="overlay"]','[class*="overlay"]',
+      '.oe_enterprise_bottom'
+    ];
+    promoSelectors.forEach(function(sel) {
+      try {
+        Array.prototype.slice.call(document.querySelectorAll(sel)).forEach(function(el) {
+          // Don't hide the login form itself
+          if (el.querySelector('input[name="uid"]') || el.querySelector('button[name="submit"]')) return;
+          el.style.display = 'none';
+        });
+      } catch(e) {}
+    });
+
+    // 4. Block dynamically injected promo content with MutationObserver
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mut) {
+        mut.addedNodes.forEach(function(node) {
+          if (node.nodeType !== 1) return;
+          var cls = (node.className || '').toLowerCase();
+          var id  = (node.id || '').toLowerCase();
+          if (cls.includes('promo') || cls.includes('banner') || cls.includes('popup') ||
+              id.includes('promo')  || id.includes('banner')  || id.includes('popup')) {
+            node.style.display = 'none';
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    // Stop observing after 5s to save memory
+    setTimeout(function() { observer.disconnect(); }, 5000);
+  })();
+
 })();
 """.trimIndent()
 
@@ -1735,6 +1899,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Schedule the worker in onCreate()
+        SalaryReminderWorker.schedule(this)
+
+        // Request notification permission (Android 13+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 100)
+            }
+        }
+
+        // Handle deep-link intent from notification
+        val deepUrl = intent?.getStringExtra("open_url")
+        if (!deepUrl.isNullOrEmpty()) {
+            // Store it so PortalScreen can pick it up after WebView loads
+            _startUrl = deepUrl
+        }
+
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -1841,6 +2024,7 @@ fun PortalScreen() {
     var isPageLoading by remember { mutableStateOf(false) }
     var canGoBack    by remember { mutableStateOf(false) }
     var isOffline    by remember { mutableStateOf<Boolean?>(null) }
+    var isPageNotFound by remember { mutableStateOf(false) }
     val pullState    = rememberPullToRefreshState()
     val scope        = rememberCoroutineScope()
 
@@ -1893,6 +2077,8 @@ fun PortalScreen() {
                 builtInZoomControls  = false
                 displayZoomControls  = false
             }
+
+            addJavascriptInterface(SalaryBillJsBridge(context), "Android")
 
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
@@ -2006,6 +2192,7 @@ fun PortalScreen() {
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                     super.onPageStarted(view, url, favicon)
                     isLoading = true; isOffline = false
+                    isPageNotFound = false
                     isPageLoading = true
                     canGoBack = view?.canGoBack() ?: false
                     if (isOnline(context)) {
@@ -2055,14 +2242,8 @@ fun PortalScreen() {
                         if (!isOnline(context)) {
                             isOffline = true; isLoading = false; isRefreshing = false
                         } else {
-                            val failedUrl = request.url?.toString() ?: PORTAL_URL
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(failedUrl)).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                }
-                                context.startActivity(intent)
-                                android.widget.Toast.makeText(context, "Portal issue detected. Opening in browser...", android.widget.Toast.LENGTH_LONG).show()
-                            } catch (e: Exception) { }
+                            isPageNotFound = true
+                            isLoading = false
                         }
                     }
                     isPageLoading = false
@@ -2076,7 +2257,8 @@ fun PortalScreen() {
                     return true
                 }
             }
-            loadUrl(PORTAL_URL)
+            loadUrl(_startUrl ?: PORTAL_URL)
+            _startUrl = null
         }
     }
 
@@ -2120,6 +2302,21 @@ fun PortalScreen() {
                 isRefreshing = false
             }
         })
+        return
+    }
+
+    if (isPageNotFound) {
+        PageNotFoundScreen(
+            onGoHome = {
+                isPageNotFound = false
+                isLoading = true
+                webView.loadUrl(PORTAL_URL)
+            },
+            onGoBack = {
+                isPageNotFound = false
+                if (webView.canGoBack()) webView.goBack()
+            }
+        )
         return
     }
 
@@ -2219,6 +2416,80 @@ fun PortalScreen() {
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PageNotFoundScreen(onGoHome: () -> Unit, onGoBack: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    listOf(Color(0xFF0A0F1E), Color(0xFF0F172A), Color(0xFF1A1F35))
+                )
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(40.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(
+                        Brush.linearGradient(listOf(Color(0xFF3B1F1F), Color(0xFF7F1D1D)))
+                    ),
+                contentAlignment = Alignment.Center
+            ) { Text("🔗", fontSize = 40.sp) }
+
+            Spacer(Modifier.height(28.dp))
+
+            Text(
+                "Page Not Found",
+                color = Color.White,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            Text(
+                "This link is broken or the page\nno longer exists.",
+                color = Color(0xFF94A3B8),
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
+            )
+
+            Spacer(Modifier.height(36.dp))
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Button(
+                    onClick = onGoBack,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E293B)),
+                    modifier = Modifier.height(52.dp)
+                ) {
+                    Text("← Go Back", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                }
+
+                Button(
+                    onClick = onGoHome,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                    modifier = Modifier.height(52.dp)
+                ) {
+                    Text("🏠 Home", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
