@@ -77,7 +77,7 @@ import okhttp3.*
 import java.io.IOException
 
 private const val PORTAL_URL = "https://pds.bmu.ac.bd/pds/user_mod/pages/home/index.php"
-private var _startUrl: String? = null
+private var _deepUrl: String? = null
 
 private val INJECT_JS = """
 (function() {
@@ -1892,6 +1892,32 @@ private val INJECT_JS = """
     setTimeout(function() { observer.disconnect(); }, 5000);
   })();
 
+  /* ── SALARY BILL SUBMISSION DETECTOR ──────────────────────────
+     Runs only on salary_money_monthly_list.php after the page loads.
+     The tbody is populated server-side — if ANY <tr> exists inside
+     .oe_list_content tbody, the current month's bill record exists
+     (the server only shows the current-month row when submitted).
+     We call Android.onBillDetected() via the JS bridge.
+  ────────────────────────────────────────────────────────────── */
+  (function detectBill() {
+    if (!window.location.href.includes('salary_money_monthly_list')) return;
+    if (typeof Android === 'undefined') return;
+
+    function check() {
+      var rows = document.querySelectorAll('table.oe_list_content tbody tr');
+      if (rows.length > 0) {
+        // A row is present = bill exists for this month
+        Android.onBillDetected();
+      }
+    }
+
+    // Run immediately and again after a short delay
+    // (server may still be rendering when JS fires)
+    check();
+    setTimeout(check, 1500);
+    setTimeout(check, 4000);
+  })();
+
 })();
 """.trimIndent()
 
@@ -1911,12 +1937,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Handle deep-link intent from notification
-        val deepUrl = intent?.getStringExtra("open_url")
-        if (!deepUrl.isNullOrEmpty()) {
-            // Store it so PortalScreen can pick it up after WebView loads
-            _startUrl = deepUrl
-        }
+        intent?.getStringExtra("deep_url")?.let { _deepUrl = it }
 
         setContent {
             MaterialTheme {
@@ -2030,7 +2051,6 @@ fun PortalScreen() {
 
     var filePathCallback by remember { mutableStateOf<ValueCallback<Array<Uri>>?>(null) }
     var isDesktopMode by remember { mutableStateOf(false) }
-    var isFailsafeActive by remember { mutableStateOf(false) }
 
     val mobileUserAgent = "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
     val desktopUserAgent = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36"
@@ -2217,13 +2237,7 @@ fun PortalScreen() {
                                     return "failed";
                                 }
                             })()
-                        """.trimIndent()) { result ->
-                            if (result != null && result.contains("failed")) {
-                                isFailsafeActive = true
-                            } else {
-                                isFailsafeActive = false
-                            }
-                        }
+                        """.trimIndent()) { }
                     }
 
                     view?.postDelayed({
@@ -2257,8 +2271,7 @@ fun PortalScreen() {
                     return true
                 }
             }
-            loadUrl(_startUrl ?: PORTAL_URL)
-            _startUrl = null
+            loadUrl(_deepUrl?.also { _deepUrl = null } ?: PORTAL_URL)
         }
     }
 
@@ -2355,7 +2368,7 @@ fun PortalScreen() {
                     )
                 }
 
-                if (isFailsafeActive || isDesktopMode) {
+                if (isDesktopMode) {
                     androidx.compose.material3.FloatingActionButton(
                         onClick = { isDesktopMode = !isDesktopMode },
                         modifier = Modifier
