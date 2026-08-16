@@ -77,6 +77,7 @@ import okhttp3.*
 import java.io.IOException
 
 private const val PORTAL_URL = "https://pds.bmu.ac.bd/pds/user_mod/pages/home/index.php"
+private var _visitedForm3 = false
 private var _deepUrl: String? = null
 
 private val INJECT_JS = """
@@ -1892,32 +1893,6 @@ private val INJECT_JS = """
     setTimeout(function() { observer.disconnect(); }, 5000);
   })();
 
-  /* ── SALARY BILL SUBMISSION DETECTOR ──────────────────────────
-     Runs only on salary_money_monthly_list.php after the page loads.
-     The tbody is populated server-side — if ANY <tr> exists inside
-     .oe_list_content tbody, the current month's bill record exists
-     (the server only shows the current-month row when submitted).
-     We call Android.onBillDetected() via the JS bridge.
-  ────────────────────────────────────────────────────────────── */
-  (function detectBill() {
-    if (!window.location.href.includes('salary_money_monthly_list')) return;
-    if (typeof Android === 'undefined') return;
-
-    function check() {
-      var rows = document.querySelectorAll('table.oe_list_content tbody tr');
-      if (rows.length > 0) {
-        // A row is present = bill exists for this month
-        Android.onBillDetected();
-      }
-    }
-
-    // Run immediately and again after a short delay
-    // (server may still be rendering when JS fires)
-    check();
-    setTimeout(check, 1500);
-    setTimeout(check, 4000);
-  })();
-
 })();
 """.trimIndent()
 
@@ -2098,8 +2073,6 @@ fun PortalScreen() {
                 displayZoomControls  = false
             }
 
-            addJavascriptInterface(SalaryBillJsBridge(context), "Android")
-
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
                     webView: WebView?,
@@ -2263,11 +2236,28 @@ fun PortalScreen() {
                     isPageLoading = false
                 }
 
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+                override fun shouldOverrideUrlLoading(
+                    view: WebView?,
+                    request: WebResourceRequest?
+                ): Boolean {
+                    val url = request?.url?.toString() ?: ""
                     isLoading = true
                     isPageLoading = true
-                    view?.loadUrl(request?.url.toString())
+                    view?.loadUrl(url)
                     canGoBack = view?.canGoBack() ?: false
+
+                    /* ── SALARY SUBMISSION DETECTION ────────────────────────────
+                       Step 1: user lands on employee_salary_form-3.php → set flag
+                       Step 2: user navigates AWAY from form-3 back to the list
+                               → this only happens after tapping Send
+                               → mark bill as submitted and stop notifications      */
+                    if (url.contains("employee_salary_form-3.php")) {
+                        _visitedForm3 = true
+                    } else if (_visitedForm3 && url.contains("salary_money_monthly_list_by_status")) {
+                        _visitedForm3 = false
+                        SalaryReminderWorker.markSubmitted(context)
+                    }
+
                     return true
                 }
             }
