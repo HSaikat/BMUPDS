@@ -11,7 +11,9 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Bundle
+import android.os.Handler
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.SslErrorHandler
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
@@ -19,6 +21,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -77,7 +80,6 @@ import okhttp3.*
 import java.io.IOException
 
 private const val PORTAL_URL = "https://pds.bmu.ac.bd/pds/user_mod/pages/home/index.php"
-private var _visitedForm3 = false
 private var _deepUrl: String? = null
 
 private val INJECT_JS = """
@@ -1776,55 +1778,39 @@ private val INJECT_JS = """
 
   /* ════════════════════════════════════════════════════════════════
      SALARY BILL SUBMISSION DETECTOR
-     Runs on salary_money_monthly_list.php.
-     Checks the "প্রক্রিয়া অবস্থা" column for a submitted status.
-     If found → calls Android.onBillSubmitted() via the JS bridge.
+     Hooks the submit button on employee_salary_form-3 / salary_form.
   ════════════════════════════════════════════════════════════════ */
-  (function detectBillSubmission() {
+  (function detectSubmitButton() {
     var url = window.location.href;
-    if (!url.includes('salary_money_monthly_list')) return;
+    if (!url.includes('employee_salary_form-3') && !url.includes('salary_form')) return;
     if (typeof Android === 'undefined') return;
+    if (window._bmuSubmitHooked) return;
 
-    // Get current month/year
-    var now   = new Date();
-    var month = now.getMonth();   // 0-based
-    var year  = now.getFullYear();
-
-    // Month name mapping (server uses English abbreviated month names)
-    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun',
-                      'Jul','Aug','Sep','Oct','Nov','Dec'];
-    var curMonthStr = monthNames[month];
-
-    // Find all rows in the salary list table
-    var rows = Array.prototype.slice.call(
-      document.querySelectorAll('table.oe_list_content tbody tr, .bmu-list-row-card')
-    );
-
-    rows.forEach(function(row) {
-      var text = row.textContent || '';
-
-      // Check if this row is for the current month
-      var isCurrentMonth = text.includes(curMonthStr) && text.includes(String(year));
-      if (!isCurrentMonth) return;
-
-      // Check "প্রক্রিয়া অবস্থা" column — submitted statuses
-      var submittedKeywords = [
-        'অনুমোদিত', 'প্রেরিত', 'submitted', 'Submitted',
-        'Approved', 'approved', 'Sent', 'sent',
-        'পরিশোধিত', 'paid', 'Paid'
-      ];
-      var isSubmitted = submittedKeywords.some(function(kw) {
-        return text.includes(kw);
+    function hookSubmitBtn() {
+      // Look for the Send/Submit button — typically oe_highlight or contains 'send'/'acc' in text
+      var buttons = Array.prototype.slice.call(
+        document.querySelectorAll('.oe_highlight, .oe_button, button, input[type="submit"]')
+      );
+      var submitBtn = buttons.find(function(btn) {
+        var t = (btn.textContent || btn.value || '').toLowerCase();
+        return t.includes('send') || t.includes('acc') || t.includes('submit') ||
+               t.includes('পাঠান') || t.includes('অনুমোদন') || t.includes('প্রেরণ');
       });
 
-      // Also consider submitted if there's no "Click to Open" action
-      // (meaning the bill has already been processed past editable state)
-      var hasEditAction = text.includes('Click to Open') || text.includes('বেতন ভাতার ফর্ম');
-
-      if (isSubmitted || !hasEditAction) {
-        Android.onBillSubmitted();
+      if (submitBtn && !submitBtn.dataset.bmuHooked) {
+        submitBtn.dataset.bmuHooked = '1';
+        submitBtn.addEventListener('click', function() {
+          setTimeout(function() {
+            Android.onBillSubmitted();
+          }, 1500); // slight delay to let the form submit first
+        });
+        window._bmuSubmitHooked = true;
       }
-    });
+    }
+
+    hookSubmitBtn();
+    setTimeout(hookSubmitBtn, 800);
+    setTimeout(hookSubmitBtn, 2000);
   })();
 
   /* ════════════════════════════════════════════════════════════════
@@ -1900,9 +1886,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-
-        // Schedule the worker in onCreate()
-        SalaryReminderWorker.schedule(this)
 
         // Request notification permission (Android 13+)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
@@ -2072,6 +2055,8 @@ fun PortalScreen() {
                 builtInZoomControls  = false
                 displayZoomControls  = false
             }
+
+            addJavascriptInterface(WebAppInterface(context), "Android")
 
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
@@ -2247,16 +2232,8 @@ fun PortalScreen() {
                     canGoBack = view?.canGoBack() ?: false
 
                     /* ── SALARY SUBMISSION DETECTION ────────────────────────────
-                       Step 1: user lands on employee_salary_form-3.php → set flag
-                       Step 2: user navigates AWAY from form-3 back to the list
-                               → this only happens after tapping Send
-                               → mark bill as submitted and stop notifications      */
-                    if (url.contains("employee_salary_form-3.php")) {
-                        _visitedForm3 = true
-                    } else if (_visitedForm3 && url.contains("salary_money_monthly_list_by_status")) {
-                        _visitedForm3 = false
-                        SalaryReminderWorker.markSubmitted(context)
-                    }
+                       Handled via JS button hook and CalendarReminderHelper
+                    ──────────────────────────────────────────────────────────── */
 
                     return true
                 }
@@ -2550,5 +2527,21 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
                 }
             }
         }
+    }
+}
+
+class WebAppInterface(private val context: Context) {
+    @JavascriptInterface
+    fun onBillSubmitted() {
+        Thread {
+            CalendarReminderHelper.submitAndScheduleNext(context)
+            showReminderToast(context, "বেতন বিল জমা হয়েছে। পরের মাসের রিমাইন্ডার সেট করা হয়েছে ✅")
+        }.start()
+    }
+}
+
+fun showReminderToast(context: Context, message: String) {
+    Handler(context.mainLooper).post {
+        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }
 }
