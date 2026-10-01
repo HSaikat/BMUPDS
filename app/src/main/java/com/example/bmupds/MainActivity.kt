@@ -1637,52 +1637,510 @@ private val INJECT_JS = """
      iframe so behaviour matches the original site.
   ════════════════════════════════════════════════════════════════ */
   function enhanceAttendancePage() {
-    var url = window.location.href;
-    if (!url.includes('attendance.bmu.ac.bd')) return;
-    if (document.getElementById('bmu-att-bar')) return;
+    if (location.hostname !== 'attendance.bmu.ac.bd' ||
+        location.pathname !== '/dashboard.php') return;
+    if (document.getElementById('bmu-att-mobile')) return;
 
-    /* Quick-action buttons to inject */
-    var attLinks = [
-      { label: 'Attendance Log',    icon: '📅', href: 'https://attendance.bmu.ac.bd/hrm/rptActPlan_single/get_liveatt_single.php' },
-      { label: 'Leave Apply',       icon: '📝', href: 'https://attendance.bmu.ac.bd/hrm/employeeLeave_single/employeeLeavegrid.php' },
-      { label: 'Leave Replace',     icon: '🔄', href: 'https://attendance.bmu.ac.bd/hrm/employeeLeave_replace/employeeLeavegrid.php' },
-      { label: 'Leave Report',      icon: '📋', href: 'https://attendance.bmu.ac.bd/hrm/rptaproveLeave_single/aproveLeavegrid.php' },
-      { label: 'Attendance Report', icon: '📊', href: 'https://attendance.bmu.ac.bd/hrm/rptActPlan_single_summary/rptActPlangrid.php', primary: true }
-    ];
+    var wrapper = document.getElementById('u-app-wrapper');
+    var content = document.querySelector('.content-wrapper');
+    var frame = document.querySelector('iframe[name="triger"]');
+    var menuLinks = Array.from(document.querySelectorAll(
+      '#u-left-menu a[target="triger"]'
+    )).filter(function(a) {
+      var href = a.getAttribute('href');
+      return href && href !== '#';
+    });
+    if (!wrapper || !content || !frame || !menuLinks.length) return;
 
-    var bar = document.createElement('div');
-    bar.id = 'bmu-att-bar';
-    bar.className = 'bmu-att-actions';
+    var serviceOpened = false;
+    var selectedLabel = '';
+    content.hidden = true;
 
-    attLinks.forEach(function(item) {
-      var a = document.createElement('a');
-      a.className = 'bmu-att-btn' + (item.primary ? ' primary' : '');
-      a.href = item.href;
-      a.setAttribute('target', 'triger');
-      a.innerHTML = '<span>' + item.icon + '</span><span>' + item.label + '</span>';
-      bar.appendChild(a);
+    var username = document.querySelector('.topbar-username');
+    var backLink = document.querySelector(
+      '.topbar-user a[href*="pds.bmu.ac.bd"]'
+    );
+
+    var style = document.createElement('style');
+    style.id = 'bmu-att-mobile';
+    style.textContent = `
+      html.bmu-att-page, html.bmu-att-page body {
+        background: #f3f6fb !important;
+        height: auto !important;
+        min-height: 100% !important;
+      }
+      .bmu-att-page #u-topbar,
+      .bmu-att-page #u-left-panel,
+      .bmu-att-page .navbar-fixed-bottom,
+      .bmu-att-page #ws-sticky-sidebar-links {
+        display: none !important;
+      }
+      .bmu-att-page #u-app-wrapper {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 0 16px !important;
+        font-family: 'Inter', system-ui, sans-serif !important;
+      }
+      #bmu-att-header {
+        padding: 22px 18px 20px;
+        background: linear-gradient(135deg, #122b54, #245fbd);
+        color: white;
+        border-radius: 0 0 24px 24px;
+      }
+      #bmu-att-header a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+        padding: 0 12px;
+        margin-bottom: 12px;
+        border: 1px solid #ffffff40;
+        border-radius: 12px;
+        color: white;
+        text-decoration: none;
+        font-size: 13px;
+      }
+      #bmu-att-header h1 {
+        margin: 0 0 8px;
+        font-size: 24px;
+        line-height: 1.25;
+        font-weight: 700;
+        color: white;
+      }
+      #bmu-att-header p {
+        margin: 0;
+        color: #dbeafe;
+        font-size: 13px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+      }
+      #bmu-att-menu {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        padding: 16px;
+      }
+      #bmu-att-menu a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 72px;
+        padding: 12px;
+        border: 1px solid #dfe7f2;
+        border-radius: 16px;
+        background: white;
+        color: #22334e;
+        text-decoration: none;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.4;
+        box-shadow: 0 3px 10px #16355b06;
+      }
+      #bmu-att-menu a:last-child:nth-child(odd) {
+        grid-column: 1 / -1;
+      }
+      #bmu-att-menu a[aria-current="page"] {
+        background: #eaf2ff;
+        border-color: #2563eb;
+        color: #1d4ed8;
+      }
+      #bmu-att-menu a:focus-visible,
+      #bmu-att-header a:focus-visible {
+        outline: 3px solid #60a5fa;
+        outline-offset: 3px;
+      }
+      #bmu-att-menu .att-icon {
+        display: grid;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+        border-radius: 11px;
+        background: #f0f5fc;
+        font-size: 20px;
+      }
+      .bmu-att-page #u-app-wrapper > .content-wrapper {
+        display: block !important;
+        position: relative !important;
+        float: none !important;
+        width: calc(100% - 32px) !important;
+        margin: 0 16px !important;
+        padding: 0 !important;
+        border: 1px solid #dfe7f2;
+        border-radius: 18px;
+        background: white !important;
+        overflow: hidden !important;
+      }
+      .bmu-att-page #u-app-wrapper > .content-wrapper[hidden] {
+        display: none !important;
+      }
+      .bmu-att-page .content-panel {
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        min-height: 0 !important;
+      }
+      #bmu-att-section {
+        padding: 15px 16px;
+        border-bottom: 1px solid #e5edf7;
+        font-size: 14px;
+        font-weight: 700;
+        color: #203554;
+        background: white;
+      }
+      .bmu-att-page .h_iframe {
+        display: block !important;
+        position: relative !important;
+        height: auto !important;
+        min-height: 0 !important;
+      }
+      .bmu-att-page iframe[name="triger"] {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        height: 70vh !important;
+        height: 70dvh !important;
+        min-height: 440px !important;
+        border: 0 !important;
+        background: white;
+      }
+    `;
+    document.head.appendChild(style);
+    document.documentElement.classList.add('bmu-att-page');
+
+    var header = document.createElement('header');
+    header.id = 'bmu-att-header';
+    if (backLink) {
+      var back = document.createElement('a');
+      back.href = backLink.href;
+      back.textContent = '← Back to PDS';
+      header.appendChild(back);
+    }
+    var title = document.createElement('h1');
+    title.textContent = 'Leave & Attendance';
+    header.appendChild(title);
+    var person = document.createElement('p');
+    person.textContent = username
+      ? username.textContent.replace(/\s+/g, ' ').trim()
+      : 'Smart Attendance System';
+    header.appendChild(person);
+
+    var nav = document.createElement('nav');
+    nav.id = 'bmu-att-menu';
+    nav.setAttribute('aria-label', 'Attendance services');
+    var section = document.createElement('div');
+    section.id = 'bmu-att-section';
+    section.textContent = '';
+    content.insertBefore(section, content.firstChild);
+
+    var icons = {
+      'Attendance Log': '📅',
+      'Leave Apply': '📝',
+      'Leave Replace': '🔄',
+      'Leave Report': '📋',
+      'Attendance Report': '📊'
+    };
+    menuLinks.forEach(function(original) {
+      var labelNode = original.querySelector('.link-name');
+      var label = (labelNode || original).textContent.trim();
+      var link = document.createElement('a');
+      link.href = original.href;
+      link.target = 'triger';
+      link.addEventListener('click', function(event) {
+        if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+            event.button !== 0) return;
+        serviceOpened = true;
+        selectedLabel = label;
+        section.textContent = label;
+        frame.style.visibility = 'hidden';
+        content.hidden = false;
+        Array.from(nav.querySelectorAll('a')).forEach(function(a) {
+          a.removeAttribute('aria-current');
+        });
+        link.setAttribute('aria-current', 'page');
+        // Let the original target="triger" navigation proceed normally.
+      });
+      var icon = document.createElement('span');
+      icon.className = 'att-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = icons[label] || '📄';
+      var text = document.createElement('span');
+      text.textContent = label;
+      link.appendChild(icon);
+      link.appendChild(text);
+      nav.appendChild(link);
     });
 
-    /* Insert bar after the top navbar, before the iframe content area */
-    var insertTarget =
-      document.querySelector('.page-wrapper') ||
-      document.querySelector('#main-wrapper') ||
-      document.querySelector('.content-wrapper') ||
-      document.body;
-
-    /* Try to put it right before the iframe wrapper */
-    var iframeWrap = document.querySelector('#main-wrapper') || document.querySelector('.page-wrapper');
-    if (iframeWrap) {
-      iframeWrap.insertBefore(bar, iframeWrap.firstChild);
-    } else {
-      insertTarget.insertBefore(bar, insertTarget.firstChild);
+    function updateSelection() {
+      if (!serviceOpened) return;
+      try {
+        var current = frame.contentWindow.location.href;
+        // Never reveal the legacy Overview, including a late initial load.
+        if (new URL(current).pathname === '/hrm/dashboard/home.php') {
+          frame.style.visibility = 'hidden';
+          return;
+        }
+        frame.style.visibility = 'visible';
+        var selected = null;
+        Array.from(nav.querySelectorAll('a')).forEach(function(a) {
+          if (new URL(a.href).pathname === new URL(current).pathname) {
+            a.setAttribute('aria-current', 'page');
+            selected = a;
+          } else {
+            a.removeAttribute('aria-current');
+          }
+        });
+        section.textContent = selected
+          ? selected.lastElementChild.textContent
+          : selectedLabel || 'Attendance workspace';
+      } catch (e) {
+        // Allow redirected login/error pages to remain visible.
+        frame.style.visibility = 'visible';
+        section.textContent = selectedLabel || 'Attendance workspace';
+      }
     }
+    frame.title = 'Attendance and leave workspace';
+    frame.addEventListener('load', updateSelection);
+    wrapper.insertBefore(header, content);
+    wrapper.insertBefore(nav, content);
+    updateSelection();
+  }
+
+  // Returns true only when this function owns the current page.
+  function redesignPortalEntryPages() {
+    if (location.hostname !== 'pds.bmu.ac.bd') return false;
+    if (document.getElementById('bmu-entry')) return true;
+    var source = document.querySelector('.openerp.openerp_webclient_container');
+    if (!source) return false;
+    var form = source.querySelector('.oe_login_pane form');
+    var isLogin = !!(form && form.querySelector('[name="uid"]') &&
+      form.querySelector('[name="pass"]'));
+    var isHome = !isLogin &&
+      ['/pds/user_mod/pages/inventory/home.php',
+       '/pds/user_mod/pages/home/index.php'].indexOf(location.pathname) !== -1 &&
+      !!source.querySelector('.smartmenu');
+    if (!isLogin && !isHome) return false;
+
+    function node(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text !== undefined) n.textContent = text;
+      return n;
+    }
+    function clean(n) { return n ? n.textContent.replace(/\s+/g, ' ').trim() : ''; }
+    var root = node('main');
+    root.id = 'bmu-entry';
+    root.className = isLogin ? 'entry-login' : 'entry-home';
+    var style = node('style');
+    style.id = 'bmu-entry-style';
+    style.textContent = `
+      html.bmu-entry-page, html.bmu-entry-page body {
+        height:auto!important; min-height:100%!important;
+        background:#f3f6fb!important; margin:0!important;
+      }
+      #bmu-entry, #bmu-entry * {box-sizing:border-box!important;text-shadow:none!important;}
+      #bmu-entry {font-family:'Inter','Noto Sans Bengali',system-ui,sans-serif;
+        color:#152d4b;line-height:1.55;max-width:680px;margin:0 auto;padding:20px 16px 32px;}
+      #bmu-entry h1,#bmu-entry h2,#bmu-entry p {margin:0;}
+      #bmu-entry a {text-decoration:none;color:inherit;}
+      #bmu-entry button,#bmu-entry input {font-family:inherit;}
+      #bmu-entry :is(a,button,input,summary):focus-visible {
+        outline:3px solid #60a5fa!important;outline-offset:3px;
+      }
+      #bmu-entry .entry-brand {display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+      #bmu-entry .entry-monogram {display:grid;place-items:center;flex:0 0 48px;height:48px;
+        background:#173862;color:white;border-radius:15px;font-weight:800;font-size:16px;}
+      #bmu-entry .entry-brand strong {display:block;font-size:16px;}
+      #bmu-entry .entry-brand small {display:block;color:#64748b;font-size:12px;}
+      #bmu-entry.entry-login {max-width:460px;padding-top:40px;}
+      #bmu-entry .entry-card {background:#fff;border:1px solid #e0e7f0;border-radius:24px;
+        padding:26px 22px;box-shadow:0 12px 40px #1738620a;}
+      #bmu-entry .entry-card h1 {font-size:28px;letter-spacing:-.6px;margin-bottom:6px;}
+      #bmu-entry .entry-muted {color:#61718a;font-size:14px;}
+      #bmu-entry form {margin-top:22px;padding:0;}
+      #bmu-entry form h2,#bmu-entry form > p {display:none!important;}
+      #bmu-entry fieldset {border:0!important;padding:0!important;margin:0!important;min-width:0;}
+      #bmu-entry label {display:block!important;color:#334965!important;font-size:13px!important;
+        font-weight:600!important;margin:16px 0 7px!important;}
+      #bmu-entry input[name="uid"],#bmu-entry input[name="pass"] {
+        display:block!important;width:100%!important;height:52px!important;
+        padding:0 14px!important;margin:0!important;font-size:16px!important;
+        color:#152d4b!important;background:#f8fafc!important;border:1px solid #ccd8e7!important;
+        border-radius:12px!important;box-shadow:none!important;
+      }
+      #bmu-entry .entry-password {position:relative;}
+      #bmu-entry .entry-password input[name="pass"] {padding-right:72px!important;}
+      #bmu-entry .entry-toggle {position:absolute;right:4px;top:4px;height:44px;min-width:60px;
+        border:0;background:transparent;color:#245fbd;font-weight:600;border-radius:9px;cursor:pointer;}
+      #bmu-entry .oe_enterprise_submit {padding:24px 0 4px!important;}
+      #bmu-entry button[name="submit"] {display:block!important;float:none!important;
+        width:100%!important;height:52px!important;margin:0!important;border:0!important;
+        border-radius:13px!important;background:#245fbd!important;color:white!important;
+        font-size:16px!important;font-weight:700!important;box-shadow:0 5px 14px #245fbd25!important;}
+      #bmu-entry .oe_login_error_message:not(:empty) {display:block!important;
+        margin:10px 0!important;padding:12px!important;background:#fff1f2!important;
+        color:#a61b32!important;border:1px solid #fecdd3!important;border-radius:12px!important;}
+      #bmu-entry .entry-foot {text-align:center;color:#78869a;font-size:12px;margin-top:22px;}
+      #bmu-entry .entry-hero {padding:22px;border-radius:24px;color:white;
+        background:linear-gradient(135deg,#122b54,#245fbd);margin-bottom:22px;}
+      #bmu-entry .entry-eyebrow {font-size:12px;color:#c8dcfc;letter-spacing:.8px;margin-bottom:14px;}
+      #bmu-entry .entry-person {display:flex;align-items:center;gap:14px;}
+      #bmu-entry .entry-photo {width:64px!important;height:72px!important;object-fit:cover;
+        border-radius:15px;flex:0 0 64px;border:2px solid #ffffff66;}
+      #bmu-entry .entry-person-copy {min-width:0;}
+      #bmu-entry .entry-person h1 {font-size:21px;line-height:1.4;color:white;overflow-wrap:anywhere;}
+      #bmu-entry .entry-person p {font-size:12px;color:#dbeafe;margin-top:5px;overflow-wrap:anywhere;}
+      #bmu-entry .entry-title {font-size:16px;font-weight:700;margin:22px 0 12px;}
+      #bmu-entry .entry-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}
+      #bmu-entry .entry-tile {display:flex;flex-direction:column;gap:12px;align-items:flex-start;
+        min-width:0;min-height:120px;padding:18px 15px;background:white;border:1px solid #dfe7f2;
+        border-radius:18px;font-weight:600;font-size:14px;overflow-wrap:anywhere;}
+      #bmu-entry .entry-icon {display:grid;place-items:center;width:40px;height:40px;
+        background:#eaf2ff;border-radius:12px;font-size:22px;}
+      #bmu-entry .entry-group {background:#fff;border:1px solid #dfe7f2;border-radius:17px;
+        margin:12px 0;overflow:hidden;}
+      #bmu-entry summary {padding:17px;cursor:pointer;font-size:14px;font-weight:700;min-height:54px;}
+      #bmu-entry .entry-row {display:block;min-height:48px;padding:13px 17px;
+        border-top:1px solid #edf1f7;font-size:13px;}
+      #bmu-entry .entry-row:hover,#bmu-entry .entry-tile:hover {background:#f6f9fe;}
+      #bmu-entry .entry-logout {display:block;margin-top:22px;text-align:center;min-height:48px;
+        padding:12px;border:1px solid #f0d7dc;border-radius:13px;color:#b32843;background:#fff;}
+      @media(max-width:350px) {#bmu-entry .entry-person{align-items:flex-start;}
+        #bmu-entry .entry-person h1{font-size:18px;} #bmu-entry .entry-hero{padding:18px;}}
+    `;
+    var brand = node('div','entry-brand');
+    brand.appendChild(node('span','entry-monogram','BMU'));
+    var brandText = node('div');
+    brandText.appendChild(node('strong','','BMU Portal'));
+    brandText.appendChild(node('small','','Human Resource Management'));
+    brand.appendChild(brandText);
+    root.appendChild(brand);
+
+    if (isLogin) {
+      var uid = form.querySelector('input[name="uid"]');
+      var password = form.querySelector('input[name="pass"]');
+      var submit = form.querySelector('button[name="submit"]');
+      if (!uid || !password || !submit) return false;
+      var card = node('section','entry-card');
+      card.appendChild(node('h1','','Welcome back'));
+      card.appendChild(node('p','entry-muted','Sign in with your PDS account.'));
+      uid.autocomplete = 'username';
+      uid.setAttribute('autocapitalize','none');
+      uid.spellcheck = false;
+      uid.placeholder = 'Enter your PDS ID';
+      password.autocomplete = 'current-password';
+      password.placeholder = 'Enter your password';
+      [uid,password].forEach(function(input,i) {
+        if (!input.id) input.id = i === 0 ? 'bmu-pds-id' : 'bmu-pds-password';
+        var fieldset = input.closest('fieldset');
+        var label = fieldset && fieldset.querySelector('label');
+        if (label) label.htmlFor = input.id;
+      });
+      var passwordWrap = node('div','entry-password');
+      password.parentNode.insertBefore(passwordWrap,password);
+      passwordWrap.appendChild(password);
+      var toggle = node('button','entry-toggle','Show');
+      toggle.type = 'button';
+      toggle.setAttribute('aria-label','Show password');
+      toggle.setAttribute('aria-pressed','false');
+      toggle.setAttribute('aria-controls',password.id);
+      toggle.addEventListener('click',function() {
+        var show = password.type === 'password';
+        password.type = show ? 'text' : 'password';
+        toggle.textContent = show ? 'Hide' : 'Show';
+        toggle.setAttribute('aria-label',show ? 'Hide password' : 'Show password');
+        toggle.setAttribute('aria-pressed',String(show));
+      });
+      passwordWrap.appendChild(toggle);
+      submit.textContent = 'Sign In';
+      var error = form.querySelector('.oe_login_error_message');
+      if (error) error.setAttribute('role','alert');
+      // Move the SAME form; preserve controls, values, submit name and native POST.
+      card.appendChild(form);
+      root.appendChild(card);
+      root.appendChild(node('p','entry-foot','Bangladesh Medical University'));
+    } else {
+      var all = Array.from(source.querySelectorAll('.smartmenu a[href], .oe_form_buttons a[href]'));
+      var links = [], seen = new Set();
+      all.forEach(function(a) {
+        var u;
+        try { u = new URL(a.href,location.href); } catch(e) { return; }
+        if (!/^https?:$/.test(u.protocol)) return;
+        if (u.origin === location.origin && u.pathname === location.pathname) return;
+        if (seen.has(u.href)) return;
+        seen.add(u.href);
+        links.push({original:a,url:u,label:clean(a)});
+      });
+      if (!links.length) return false;
+      var hero = node('section','entry-hero');
+      hero.appendChild(node('div','entry-eyebrow','YOUR BMU WORKSPACE'));
+      var person = node('div','entry-person');
+      var photoSource = source.querySelector('.oe_view_manager_header td[width="80"] img');
+      if (photoSource) {
+        var photo = node('img','entry-photo');
+        photo.src = photoSource.src; photo.alt = 'Profile photo';
+        photo.addEventListener('error',function(){photo.hidden = true;});
+        person.appendChild(photo);
+      }
+      var copy = node('div','entry-person-copy');
+      var info = source.querySelector('.oe_view_manager_header td[width="400"]');
+      var lines = info ? Array.from(info.querySelectorAll('span')).map(clean).filter(Boolean) : [];
+      copy.appendChild(node('h1','',lines[0] || 'Welcome to BMU'));
+      lines.slice(1).forEach(function(line){copy.appendChild(node('p','',line));});
+      person.appendChild(copy);hero.appendChild(person);root.appendChild(hero);
+      function anchor(item,cls,label) {
+        var a = node('a',cls,label === undefined ? item.label : label);
+        // Runtime URL only: never copy a saved archive's attendance token into source.
+        a.href = item.original.href;
+        if (item.original.target) a.target = item.original.target;
+        if (item.original.rel) a.rel = item.original.rel;
+        return a;
+      }
+      var grid = node('div','entry-grid');
+      var primary = [
+        {test:function(x){return x.url.pathname.includes('employee_basic_information');},label:'পি ডি এস',icon:'📋'},
+        {test:function(x){return x.url.hostname === 'attendance.bmu.ac.bd';},label:'ছুটি ও হাজিরা',icon:'📅'}
+      ];
+      primary.forEach(function(p) {
+        var item = links.find(p.test); if (!item) return;
+        var a = anchor(item,'entry-tile','');
+        var icon = node('span','entry-icon',p.icon);icon.setAttribute('aria-hidden','true');
+        a.appendChild(icon);a.appendChild(node('span','',p.label));grid.appendChild(a);
+      });
+      var groups = [
+        {title:'বেতন ও ভাতাদি',test:function(x){return x.url.pathname.includes('/salary_ration_money/');}},
+        {title:'ব্যক্তিগত তথ্য ও সেটিংস',test:function(x){return x.url.pathname.includes('/pages/pds/');}},
+        {title:'রিপোর্ট ও অন্যান্য সেবা',test:function(){return true;}}
+      ];
+      var remaining = links.filter(function(x){return x.url.hostname !== 'attendance.bmu.ac.bd';});
+      groups.forEach(function(g) {
+        var items = remaining.filter(g.test);
+        remaining = remaining.filter(function(x){return !g.test(x);});
+        if (!items.length) return;
+        var details = node('details','entry-group');
+        details.appendChild(node('summary','',g.title));
+        items.forEach(function(item){details.appendChild(anchor(item,'entry-row',item.label || 'বিস্তারিত দেখুন'));});
+        root.appendChild(details);
+      });
+      root.appendChild(node('h2','entry-title','দ্রুত সেবা'));
+      root.appendChild(grid);
+      var logout = source.querySelector('a[href*="/logout.php"]');
+      if (logout) root.appendChild(anchor({original:logout},'entry-logout','লগ আউট'));
+      root.appendChild(node('p','entry-foot','Bangladesh Medical University'));
+    }
+    document.head.appendChild(style);
+    document.body.appendChild(root);
+    document.documentElement.classList.add('bmu-entry-page');
+    source.style.setProperty('display','none','important');
+    return true;
   }
 
   /* ════════════════════════════════════════════════════════════════
      13. RUN ALL
   ════════════════════════════════════════════════════════════════ */
   function runAll() {
+    if (redesignPortalEntryPages()) return;
     polishLoginPage();
     transformMenu();
     moveSidebarBelowUserCard();
@@ -2225,6 +2683,14 @@ fun PortalScreen() {
                     view: WebView?,
                     request: WebResourceRequest?
                 ): Boolean {
+                    val currentPage = view?.url?.let { Uri.parse(it) }
+                    if (request?.isForMainFrame == false &&
+                        currentPage?.host == "attendance.bmu.ac.bd" &&
+                        currentPage?.path == "/dashboard.php"
+                    ) {
+                        return false
+                    }
+
                     val url = request?.url?.toString() ?: ""
                     isLoading = true
                     isPageLoading = true
