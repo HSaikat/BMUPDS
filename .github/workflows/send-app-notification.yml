@@ -1,0 +1,42 @@
+name: Send App Notification
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: 'Notification Title'
+        required: true
+        type: string
+        default: 'BMU PDS'
+      message:
+        description: 'Notification Message'
+        required: true
+        type: string
+      deep_url:
+        description: 'Optional HTTPS Deep URL (pds.bmu.ac.bd or attendance.bmu.ac.bd)'
+        required: false
+        type: string
+      urgent:
+        description: 'High Priority (Urgent)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Send FCM Notification
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          INPUT_TITLE: ${{ inputs.title }}
+          INPUT_MESSAGE: ${{ inputs.message }}
+          INPUT_DEEP_URL: ${{ inputs.deep_url }}
+          INPUT_URGENT: ${{ inputs.urgent }}
+        run: node .github/scripts/send-fcm.mjs

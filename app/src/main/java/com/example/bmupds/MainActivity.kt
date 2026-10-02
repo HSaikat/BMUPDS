@@ -2350,6 +2350,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
+        BmuPushNotifications.initialize(this)
+
         // Request notification permission (Android 13+)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
             if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -2376,7 +2378,9 @@ class MainActivity : ComponentActivity() {
             }.start()
         }
 
-        intent?.getStringExtra("deep_url")?.let { _deepUrl = it }
+        intent?.getStringExtra(BmuPushNotifications.EXTRA_DEEP_URL)
+            ?.let(BmuPushNotifications::safeDeepUrl)
+            ?.let { _deepUrl = it }
 
         setContent {
             MaterialTheme {
