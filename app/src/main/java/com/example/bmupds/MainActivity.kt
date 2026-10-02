@@ -1,10 +1,12 @@
 package com.example.bmupds
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -2133,6 +2135,9 @@ private val INJECT_JS = """
     document.body.appendChild(root);
     document.documentElement.classList.add('bmu-entry-page');
     source.style.setProperty('display','none','important');
+
+
+
     return true;
   }
 
@@ -2353,6 +2358,24 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        // Request calendar permissions
+        if (checkSelfPermission(Manifest.permission.READ_CALENDAR)
+            != PackageManager.PERMISSION_GRANTED ||
+            checkSelfPermission(Manifest.permission.WRITE_CALENDAR)
+            != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                arrayOf(
+                    Manifest.permission.READ_CALENDAR,
+                    Manifest.permission.WRITE_CALENDAR
+                ), 101
+            )
+        } else {
+            Thread {
+                CalendarReminderHelper.resetIfNewMonth(this)
+                CalendarReminderHelper.addSalaryReminders(this)
+            }.start()
+        }
+
         intent?.getStringExtra("deep_url")?.let { _deepUrl = it }
 
         setContent {
@@ -2361,6 +2384,24 @@ class MainActivity : ComponentActivity() {
                     PortalScreen()
                 }
             }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == 101 &&
+            grantResults.isNotEmpty() &&
+            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        ) {
+            Thread {
+                CalendarReminderHelper.resetIfNewMonth(this)
+                CalendarReminderHelper.addSalaryReminders(this)
+            }.start()
         }
     }
 }
@@ -3003,6 +3044,31 @@ class WebAppInterface(private val context: Context) {
             CalendarReminderHelper.submitAndScheduleNext(context)
             showReminderToast(context, "বেতন বিল জমা হয়েছে। পরের মাসের রিমাইন্ডার সেট করা হয়েছে ✅")
         }.start()
+    }
+
+    @JavascriptInterface
+    fun muteReminder() {
+        Thread {
+            CalendarReminderHelper.muteForMonth(context)
+            showReminderToast(context, "এই মাসের রিমাইন্ডার বন্ধ করা হয়েছে ✅")
+        }.start()
+    }
+
+    @JavascriptInterface
+    fun unmuteReminder() {
+        Thread {
+            CalendarReminderHelper.unmuteForMonth(context)
+            val msg = if (CalendarReminderHelper.isMutedForMonth(context))
+                "পরের মাস থেকে রিমাইন্ডার চালু হবে ✅"
+            else
+                "রিমাইন্ডার পুনরায় চালু করা হয়েছে ✅"
+            showReminderToast(context, msg)
+        }.start()
+    }
+
+    @JavascriptInterface
+    fun isReminderMuted(): Boolean {
+        return CalendarReminderHelper.isMutedForMonth(context)
     }
 }
 
