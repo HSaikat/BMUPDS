@@ -2565,8 +2565,25 @@ fun GitHubUpdateChecker(context: Context) {
             confirmButton = {
                 TextButton(onClick = {
                     showDialog = false
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(updateUrl))
-                    context.startActivity(intent)
+                    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
+                    val apkName = "BMU.PDS.apk"
+                    val request = android.app.DownloadManager.Request(Uri.parse(updateUrl)).apply {
+                        setTitle("BMU PDS Update")
+                        setDescription("Downloading $apkName…")
+                        setMimeType("application/vnd.android.package-archive")
+                        setNotificationVisibility(
+                            android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                        )
+                        setDestinationInExternalPublicDir(
+                            android.os.Environment.DIRECTORY_DOWNLOADS, apkName
+                        )
+                        // Follow GitHub redirects
+                        addRequestHeader("Accept", "application/octet-stream")
+                    }
+                    dm.enqueue(request)
+                    android.widget.Toast.makeText(
+                        context, "Downloading update, check notifications…", android.widget.Toast.LENGTH_LONG
+                    ).show()
                 }) {
                     Text("Update Now")
                 }
