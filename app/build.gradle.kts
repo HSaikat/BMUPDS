@@ -16,8 +16,8 @@ android {
         applicationId = "com.example.bmupds"
         minSdk = 24
         targetSdk = 34
-        versionCode = 15
-        versionName = "6.0.0"
+        versionCode = 16
+        versionName = "6.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -54,6 +54,7 @@ dependencies {
     implementation(libs.gson)
     implementation(libs.okhttp)
     implementation("androidx.work:work-runtime-ktx:2.9.0")
+    implementation("androidx.browser:browser:1.8.0")
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     testImplementation(libs.junit)

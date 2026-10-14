@@ -13,6 +13,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.net.http.SslError
 import android.os.Bundle
+import android.os.Build
 import android.os.Handler
 import android.view.ViewGroup
 import android.webkit.JavascriptInterface
@@ -916,16 +917,88 @@ private val INJECT_JS = """
         box-shadow: 0 1px 0 rgba(255,255,255,0.15) inset, 0 8px 20px rgba(15,96,74,0.28) !important;
       }
       .oe_enterprise_submit button[name="submit"]:active { opacity: 0.9 !important; }
+
+      /* ── PF26 SALARY FORM (server-rendered new layout) ───────── */
+      #pf26 { font-family: var(--fn-bn) !important; }
+      #pf26 .pf-logo { display: block !important; width: 100% !important; height: auto !important; max-height: 90px !important; object-fit: contain !important; margin-bottom: 10px !important; }
+      #pf26 .pf-card { background: var(--white) !important; border: 1px solid var(--border) !important; border-radius: var(--r-xl) !important; overflow: hidden !important; margin-bottom: 10px !important; box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important; }
+      #pf26 .pf-h { padding: 12px 16px !important; border-bottom: 1px solid var(--border) !important; background: var(--bg) !important; }
+      #pf26 .pf-h h3 { font-size: 13px !important; font-family: var(--fn-bn) !important; font-weight: 700 !important; color: var(--text) !important; margin: 0 !important; }
+      #pf26 .pf-b { padding: 12px 16px !important; }
+      #pf26 .pf-net { background: #e8f5e9 !important; border: 1px solid #a5d6a7 !important; border-radius: var(--r-xl) !important; padding: 16px !important; margin-bottom: 10px !important; }
+      #pf26 .pf-nl { font-size: 13px !important; font-weight: 700 !important; color: #1b5e20 !important; margin-bottom: 6px !important; }
+      #pf26 .pf-netv { font-size: 24px !important; font-weight: 700 !important; color: #1b5e20 !important; font-family: var(--fn-en) !important; }
+      #pf26 .pf-w { font-size: 13px !important; color: var(--text) !important; margin-top: 8px !important; }
+      #pf26 .pf-name { font-size: 16px !important; font-weight: 700 !important; }
+      #pf26 .pf-badge { font-size: 12px !important; background: #e8f5e9 !important; border: 1px solid #a5d6a7 !important; color: #1b5e20 !important; border-radius: 999px !important; padding: 4px 12px !important; white-space: nowrap !important; }
+      #pf26 .pf-grp dt { font-size: 12px !important; color: var(--text2) !important; }
+      #pf26 .pf-grp dd { font-size: 13px !important; font-weight: 600 !important; }
+      #pf26 .pf-t td, #pf26 .pf-t th { font-size: 13px !important; }
+      #pf26 .pf-tot td { font-weight: 700 !important; background: #f1f6f2 !important; }
+      #pf26 .pf-sv { font-size: 13px !important; font-weight: 600 !important; }
+      #pf26 .pf-sl { font-size: 11px !important; color: var(--text2) !important; }
+      #pf26 .pf-st { font-size: 12px !important; color: var(--text2) !important; }
+      #pf26 .pf-actions { display: flex !important; flex-wrap: wrap !important; gap: 10px !important; justify-content: center !important; align-items: center !important; padding: 12px 0 !important; }
     `;
     document.head.appendChild(st);
   }
 
   /* ════════════════════════════════════════════════════════════════
      4. SALARY SLIP REBUILDER
+     New pages: server renders #pf26 directly — just apply mobile
+     CSS tweaks and skip the old table-scrape path entirely.
   ════════════════════════════════════════════════════════════════ */
   function rebuildSalaryPage() {
-    if (document.getElementById('bmu-salary-card')) return;
     if (!window.location.href.includes('salary_ration_money')) return;
+
+    /* ── NEW PATH: server already rendered #pf26 ── */
+    var pf26 = document.getElementById('pf26');
+    if (pf26) {
+      if (pf26.dataset.bmuMobile) return;
+      pf26.dataset.bmuMobile = '1';
+
+      /* Inject mobile overrides scoped to #pf26 */
+      if (!document.getElementById('bmu-pf26-mobile')) {
+        var s = document.createElement('style');
+        s.id = 'bmu-pf26-mobile';
+        s.textContent = `
+          #pf26 { padding: 0 !important; margin: 0 !important; max-width: 100vw !important; }
+          #pf26 .pf-two { grid-template-columns: 1fr !important; gap: 10px !important; }
+          #pf26 .pf-cols { grid-template-columns: 1fr !important; gap: 8px !important; }
+          #pf26 .pf-info { grid-template-columns: 1fr 1fr !important; }
+          #pf26 .pf-extra { grid-template-columns: 1fr !important; gap: 10px !important; }
+          #pf26 .pf-net { grid-template-columns: 1fr !important; gap: 6px !important; }
+          #pf26 .pf-sig { grid-template-columns: 1fr 1fr !important; gap: 14px !important; }
+          #pf26 .pf-pass { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+          #pf26 .pf-card { border-radius: 14px !important; margin-bottom: 10px !important; }
+          #pf26 .pf-top img.pf-logo { width: 100% !important; height: auto !important; max-height: 80px; object-fit: contain; }
+          #pf26 table.pf-t td, #pf26 table.pf-t th { white-space: normal !important; }
+          #pf26 .pf-who { flex-wrap: wrap !important; }
+          #pf26 .pf-netv { font-size: 22px !important; font-weight: 700 !important; color: var(--brand) !important; }
+          #pf26 .pf-desig { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+          #pf26 .pf-stmt { font-size: 13px; margin: 8px 0; }
+          #pf26 .pf-foot { font-size: 11px; color: var(--muted); margin-top: 10px; }
+        `;
+        document.head.appendChild(s);
+      }
+
+      /* Hide the legacy header user-card table (already shown in pf-who) */
+      var hdrTable = document.querySelector('table.oe_view_manager_header');
+      if (hdrTable) hdrTable.style.display = 'none';
+
+      /* Move #pf26 to be a direct child of oe_application for clean layout */
+      var appArea = document.querySelector('td.oe_application');
+      if (appArea && pf26.parentNode !== appArea) {
+        var wrapper = document.createElement('div');
+        wrapper.style.cssText = 'padding:12px;background:var(--bg,#f8fafc);';
+        appArea.insertBefore(wrapper, appArea.firstChild);
+        wrapper.appendChild(pf26);
+      }
+      return;
+    }
+
+    /* ── LEGACY PATH: old table-scraped layout (unchanged below) ── */
+    if (document.getElementById('bmu-salary-card')) return;
     if (!window.location.href.includes('employee_salary_form_view') &&
         !window.location.href.includes('employee_salary_form-3') &&
         !window.location.href.includes('employee_salary_form_festival')) return;
@@ -933,6 +1006,7 @@ private val INJECT_JS = """
     var formBody = document.querySelector('.oe_view_manager_body');
     if (!formBody) return;
     var tables = Array.prototype.slice.call(formBody.querySelectorAll('table.oe_form_group'));
+    if (!tables.length) return;
     if (!tables.length) return;
 
         function cellText(td) {
@@ -1605,7 +1679,7 @@ private val INJECT_JS = """
   }
 
   /* ════════════════════════════════════════════════════════════════
-     11. MOVE SIDEBAR BELOW USER CARD  (non-home pages only)
+     11. MOVE SIDEBAR RIGHT BELOW TOPBAR (banner)
   ════════════════════════════════════════════════════════════════ */
   function moveSidebarBelowUserCard() {
     if (window.location.href.includes('home/index.php')) return;
@@ -1613,19 +1687,36 @@ private val INJECT_JS = """
 
     var leftbar = document.querySelector('td.oe_leftbar');
     if (!leftbar) return;
-    var appArea = document.querySelector('td.oe_application');
-    if (!appArea) return;
 
+    // Find the main layout table (oe_webclient) and insert sidebar as a
+    // new row immediately after the topbar rows, before oe_application.
+    var webclient = document.querySelector('table.oe_webclient > tbody');
+    if (!webclient) return;
+
+    var appRow = null;
+    var rows = Array.prototype.slice.call(webclient.rows);
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i].querySelector('td.oe_application')) {
+        appRow = rows[i];
+        break;
+      }
+    }
+    if (!appRow) return;
+
+    // Detach leftbar from its original cell so the row collapses cleanly
     leftbar.id = 'bmu-sidebar-moved';
     leftbar.style.cssText = 'display:block!important;width:100%!important;padding:12px 12px 14px!important;background:var(--bg)!important;border-right:none!important;border-bottom:1px solid var(--border)!important;box-sizing:border-box!important;';
 
-    var headerTable = appArea.querySelector('table.oe_view_manager_header');
+    // Wrap it in a new <tr><td colspan="2"> so it spans full width
+    var newRow = document.createElement('tr');
+    var newTd  = document.createElement('td');
+    newTd.setAttribute('colspan', '2');
+    newTd.style.cssText = 'padding:0!important;';
+    newTd.appendChild(leftbar);
+    newRow.appendChild(newTd);
 
-    if (headerTable) {
-      headerTable.parentNode.insertBefore(leftbar, headerTable.nextSibling);
-    } else {
-      appArea.insertBefore(leftbar, appArea.firstChild);
-    }
+    // Insert the new row right before the oe_application row
+    webclient.insertBefore(newRow, appRow);
   }
 
   /* ════════════════════════════════════════════════════════════════
@@ -2559,7 +2650,7 @@ fun PortalScreen() {
                 displayZoomControls  = false
             }
 
-            addJavascriptInterface(WebAppInterface(context), "Android")
+            addJavascriptInterface(WebAppInterface(context, this), "Android")
 
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
@@ -2587,81 +2678,84 @@ fun PortalScreen() {
                 }
             }
 
-            setDownloadListener { url, userAgent, contentDisposition, mimetype, contentLength ->
-                try {
-                    val cookieManager = android.webkit.CookieManager.getInstance()
-                    cookieManager.setAcceptCookie(true)
-                    cookieManager.flush()
-                    val cookies = cookieManager.getCookie(url)
+            setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
+                val cookieManager = android.webkit.CookieManager.getInstance()
+                cookieManager.flush()
+                val cookies = cookieManager.getCookie(url) ?: ""
 
-                    val guessedFileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
+                // Sanitize filename
+                val rawName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
+                val safeName = rawName.replace(Regex("[\\\\/:*?\"<>|]"), "_").take(200)
 
-                    val request = android.app.DownloadManager.Request(Uri.parse(url)).apply {
-                        setMimeType(mimetype)
-                        addRequestHeader("Cookie", cookies)
-                        addRequestHeader("User-Agent", userAgent)
-                        setDescription("Downloading document from portal...")
-                        setTitle(guessedFileName)
-                        setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-                        setDestinationInExternalPublicDir(
-                            android.os.Environment.DIRECTORY_DOWNLOADS,
-                            guessedFileName
-                        )
-                    }
+                android.widget.Toast.makeText(context, "Downloading $safeName…", android.widget.Toast.LENGTH_SHORT).show()
 
-                    val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
-                    val downloadId = dm.enqueue(request)
-                    android.widget.Toast.makeText(context, "Download started...", android.widget.Toast.LENGTH_SHORT).show()
+                Thread {
+                    try {
+                        val client = OkHttpClient()
+                        val request = Request.Builder()
+                            .url(url)
+                            .header("Cookie", cookies)
+                            .header("User-Agent", userAgent)
+                            .build()
 
-                    val onDownloadCompleteReceiver = object : android.content.BroadcastReceiver() {
-                        override fun onReceive(context: Context?, intent: Intent?) {
-                            val id = intent?.getLongExtra(android.app.DownloadManager.EXTRA_DOWNLOAD_ID, -1L) ?: -1L
-                            if (id == downloadId) {
-                                val query = android.app.DownloadManager.Query().setFilterById(downloadId)
-                                val cursor = dm.query(query)
-                                if (cursor != null && cursor.moveToFirst()) {
-                                    val statusColumnIndex = cursor.getColumnIndex(android.app.DownloadManager.COLUMN_STATUS)
-                                    if (statusColumnIndex != -1) {
-                                        val status = cursor.getInt(statusColumnIndex)
+                        val response = client.newCall(request).execute()
+                        if (!response.isSuccessful) {
+                            Handler(context.mainLooper).post {
+                                android.widget.Toast.makeText(context, "Download failed: server returned ${response.code}", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                            return@Thread
+                        }
 
-                                        if (status == android.app.DownloadManager.STATUS_FAILED) {
-                                            try {
-                                                val browserIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                                                }
-                                                context?.startActivity(browserIntent)
-                                                android.widget.Toast.makeText(context, "Redirecting to browser download...", android.widget.Toast.LENGTH_SHORT).show()
-                                            } catch (fallbackException: Exception) {
-                                                android.widget.Toast.makeText(context, "Browser fallback failed", android.widget.Toast.LENGTH_SHORT).show()
-                                            }
-                                        }
-                                    }
-                                }
-                                cursor?.close()
-                                try {
-                                    context?.unregisterReceiver(this)
-                                } catch (e: Exception) { }
+                        val body = response.body ?: run {
+                            Handler(context.mainLooper).post {
+                                android.widget.Toast.makeText(context, "Download failed: empty response", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                            return@Thread
+                        }
+
+                        // Write to Downloads via MediaStore (compatible with API 24+)
+                        val resolver = context.contentResolver
+                        val contentValues = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, safeName)
+                            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimetype.ifBlank { "application/octet-stream" })
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
                             }
                         }
-                    }
-
-                    androidx.core.content.ContextCompat.registerReceiver(
-                        context,
-                        onDownloadCompleteReceiver,
-                        android.content.IntentFilter(android.app.DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                        androidx.core.content.ContextCompat.RECEIVER_EXPORTED
-                    )
-
-                } catch (e: Exception) {
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            android.provider.MediaStore.Downloads.getContentUri(
+                                android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY
+                            )
+                        } else {
+                            android.provider.MediaStore.Files.getContentUri("external")
                         }
-                        context.startActivity(intent)
-                    } catch (fallbackException: Exception) {
-                        android.widget.Toast.makeText(context, "Download failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                        val itemUri = resolver.insert(collection, contentValues) ?: run {
+                            Handler(context.mainLooper).post {
+                                android.widget.Toast.makeText(context, "Download failed: couldn't create file", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                            return@Thread
+                        }
+
+                        resolver.openOutputStream(itemUri)?.use { out ->
+                            body.byteStream().copyTo(out)
+                        }
+
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            contentValues.clear()
+                            contentValues.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                            resolver.update(itemUri, contentValues, null, null)
+                        }
+
+                        Handler(context.mainLooper).post {
+                            android.widget.Toast.makeText(context, "✅ Saved to Downloads: $safeName", android.widget.Toast.LENGTH_LONG).show()
+                        }
+
+                    } catch (e: Exception) {
+                        Handler(context.mainLooper).post {
+                            android.widget.Toast.makeText(context, "Download error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                        }
                     }
-                }
+                }.start()
             }
 
             webViewClient = object : WebViewClient() {
@@ -2671,6 +2765,18 @@ fun PortalScreen() {
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                    // ── OFFLINE LOGIN INTERCEPT ─────────────────────────────────
+                    if (url != null && !url.startsWith("file://") &&
+                        url.contains("pds.bmu.ac.bd") &&
+                        (url.contains("/main/login.php") ||
+                         (url.contains("index.php") && url.contains("/main/")))
+                    ) {
+                        view?.stopLoading()
+                        view?.loadUrl("file:///android_asset/login.html")
+                        return
+                    }
+                    // ────────────────────────────────────────────────────────────
+
                     super.onPageStarted(view, url, favicon)
                     isLoading = true; isOffline = false
                     isPageNotFound = false
@@ -2728,6 +2834,29 @@ fun PortalScreen() {
                     view: WebView?,
                     request: WebResourceRequest?
                 ): Boolean {
+                    // If server redirected back to login (failed login), show error on local page
+                    val urlCheck = request?.url?.toString() ?: ""
+                    if (urlCheck.contains("pds.bmu.ac.bd") && urlCheck.contains("login.php") &&
+                        view?.url.orEmpty().startsWith("file://")
+                    ) {
+                        view?.evaluateJavascript("window.showLoginError('Invalid PDS ID or password.')", null)
+                        return true
+                    }
+
+                    // Intercept the login page and load local asset instead
+                    if (urlCheck.contains("pds.bmu.ac.bd") &&
+                        (urlCheck.contains("/main/login.php") || (urlCheck.contains("/user_mod/pages/home/index.php").not() &&
+                         request?.url?.path?.let {
+                             it.endsWith("login.php") || it.endsWith("index.php") && it.contains("main")
+                         } == true))
+                    ) {
+                        // Only intercept if not already on the local login asset
+                        if (!view?.url.orEmpty().startsWith("file://")) {
+                            view?.loadUrl("file:///android_asset/login.html")
+                            return true
+                        }
+                    }
+
                     val currentPage = view?.url?.let { Uri.parse(it) }
                     if (request?.isForMainFrame == false &&
                         currentPage?.host == "attendance.bmu.ac.bd" &&
@@ -3041,7 +3170,7 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
     }
 }
 
-class WebAppInterface(private val context: Context) {
+class WebAppInterface(private val context: Context, private val webView: WebView? = null) {
     @JavascriptInterface
     fun onBillSubmitted() {
         Thread {
@@ -3073,6 +3202,17 @@ class WebAppInterface(private val context: Context) {
     @JavascriptInterface
     fun isReminderMuted(): Boolean {
         return CalendarReminderHelper.isMutedForMonth(context)
+    }
+
+    @JavascriptInterface
+    fun submitLogin(uid: String, pass: String) {
+        Handler(context.mainLooper).post {
+            val encoded = "uid=${Uri.encode(uid)}&pass=${Uri.encode(pass)}&action=login"
+            webView?.postUrl(
+                "https://pds.bmu.ac.bd/pds/user_mod/pages/main/login.php",
+                encoded.toByteArray(Charsets.UTF_8)
+            )
+        }
     }
 }
 

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>BMU Portal</title>
+<style>
+  :root {
+    --green: #10604a; --green2: #0f5132; --gold: #c9a227;
+    --ink: #14281f; --muted: #6b7a70; --bg: #faf7f0;
+    --white: #ffffff; --border: #e5e0d4; --err: #a83232;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%; background: var(--bg);
+    font-family: 'Inter', system-ui, sans-serif; color: var(--ink);
+  }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    padding: max(32px, env(safe-area-inset-top, 32px)) 20px
+             max(32px, env(safe-area-inset-bottom, 32px));
+    background:
+      radial-gradient(circle at 14% 12%, rgba(16,96,74,0.07) 0, transparent 42%),
+      radial-gradient(circle at 88% 18%, rgba(201,162,39,0.10) 0, transparent 38%),
+      radial-gradient(circle at 50% 100%, rgba(16,96,74,0.05) 0, transparent 50%),
+      var(--bg);
+  }
+  .card {
+    width: 100%; max-width: 400px;
+    background: var(--white);
+    border: 1px solid rgba(16,96,74,0.10);
+    border-radius: 22px;
+    box-shadow: 0 24px 48px rgba(15,43,34,0.10), 0 4px 14px rgba(15,43,34,0.06);
+    overflow: hidden;
+  }
+  .banner {
+    height: 104px;
+    background: linear-gradient(135deg, #0f5132 0%, #10604a 55%, #147a5a 100%);
+    position: relative;
+  }
+  .avatar {
+    position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%);
+    width: 68px; height: 68px; background: var(--white);
+    border-radius: 50%; border: 3px solid var(--gold);
+    box-shadow: 0 6px 18px rgba(15,43,34,0.22);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px; line-height: 1;
+  }
+  .body { padding: 54px 28px 36px; }
+  h1 {
+    text-align: center; font-size: 21px; font-weight: 700;
+    color: var(--ink); margin-bottom: 4px;
+  }
+  .sub { text-align: center; font-size: 13px; color: var(--muted); margin-bottom: 28px; }
+  label {
+    display: block; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--green); margin-bottom: 6px; margin-top: 16px;
+  }
+  input[type=text], input[type=password] {
+    display: block; width: 100%; height: 50px;
+    padding: 0 16px; font-size: 15.5px; color: var(--ink);
+    background: #f6f4ee; border: 1.5px solid var(--border);
+    border-radius: 12px; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  input[type=text]:focus, input[type=password]:focus {
+    border-color: var(--green);
+    box-shadow: 0 0 0 3px rgba(16,96,74,0.14);
+    background: var(--white);
+  }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-right: 72px; }
+  .toggle {
+    position: absolute; right: 4px; top: 4px;
+    height: 42px; min-width: 60px; border: none;
+    background: transparent; color: var(--green);
+    font-weight: 600; font-size: 13px;
+    border-radius: 9px; cursor: pointer;
+  }
+  .error {
+    display: none; margin-top: 14px; padding: 10px 14px;
+    background: rgba(200,60,60,0.08); border: 1px solid rgba(200,60,60,0.25);
+    border-radius: 10px; font-size: 13px; color: var(--err);
+  }
+  .error.show { display: block; }
+  .submit-wrap { margin-top: 28px; }
+  button[type=submit] {
+    display: block; width: 100%; height: 52px;
+    font-size: 15.5px; font-weight: 700; color: var(--white);
+    background: linear-gradient(135deg, #10604a 0%, #0f5132 100%);
+    border: none; border-radius: 13px; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(15,96,74,0.28);
+    position: relative;
+  }
+  button[type=submit]:active { opacity: 0.9; }
+  button[type=submit].loading .btn-text { visibility: hidden; }
+  button[type=submit].loading::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; top: 50%; left: 50%;
+    margin: -10px 0 0 -10px;
+    border: 2.5px solid rgba(255,255,255,0.4);
+    border-top-color: white; border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="banner"><div class="avatar">🏛</div></div>
+  <div class="body">
+    <h1>BMU Portal</h1>
+    <p class="sub">Human Resource Management System</p>
+    <form id="loginForm">
+      <label for="uid">PDS ID</label>
+      <input type="text" id="uid" name="uid" placeholder="Enter your PDS ID"
+             autocomplete="username" autocapitalize="none" spellcheck="false">
+      <label for="pass">Password</label>
+      <div class="pw-wrap">
+        <input type="password" id="pass" name="pass" placeholder="Enter your password"
+               autocomplete="current-password">
+        <button type="button" class="toggle" id="toggle">Show</button>
+      </div>
+      <div class="error" id="err" role="alert"></div>
+      <div class="submit-wrap">
+        <button type="submit" id="submitBtn">
+          <span class="btn-text">Sign In</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  var toggle = document.getElementById('toggle');
+  var passEl = document.getElementById('pass');
+  toggle.addEventListener('click', function() {
+    var show = passEl.type === 'password';
+    passEl.type = show ? 'text' : 'password';
+    toggle.textContent = show ? 'Hide' : 'Show';
+  });
+
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    var uid  = document.getElementById('uid').value.trim();
+    var pass = document.getElementById('pass').value;
+    var err  = document.getElementById('err');
+    var btn  = document.getElementById('submitBtn');
+    err.className = 'error';
+
+    if (!uid || !pass) {
+      err.textContent = 'Please enter your PDS ID and password.';
+      err.className = 'error show';
+      return;
+    }
+
+    btn.classList.add('loading');
+
+    // Hand off to Android to POST and navigate
+    if (window.Android && window.Android.submitLogin) {
+      window.Android.submitLogin(uid, pass);
+    }
+  });
+
+  // Called from Android on login failure
+  window.showLoginError = function(msg) {
+    var btn = document.getElementById('submitBtn');
+    btn.classList.remove('loading');
+    var err = document.getElementById('err');
+    err.textContent = msg || 'Invalid PDS ID or password.';
+    err.className = 'error show';
+  };
+</script>
+</body>
+</html>
