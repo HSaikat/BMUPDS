@@ -2612,7 +2612,8 @@ fun PortalScreen() {
     var isLoading    by remember { mutableStateOf(true) }
     var isRefreshing by remember { mutableStateOf(false) }
     var isPageLoading by remember { mutableStateOf(false) }
-    var canGoBack    by remember { mutableStateOf(false) }
+    var canGoBack       by remember { mutableStateOf(false) }
+    var browserLaunched by remember { mutableStateOf(false) }
     var isOffline    by remember { mutableStateOf<Boolean?>(null) }
     var isPageNotFound by remember { mutableStateOf(false) }
     val pullState    = rememberPullToRefreshState()
@@ -2695,84 +2696,16 @@ fun PortalScreen() {
                 }
             }
 
-            setDownloadListener { url, userAgent, contentDisposition, mimetype, _ ->
-                val cookieManager = android.webkit.CookieManager.getInstance()
-                cookieManager.flush()
-                val cookies = cookieManager.getCookie(url) ?: ""
-
-                // Sanitize filename
-                val rawName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimetype)
-                val safeName = rawName.replace(Regex("[\\\\/:*?\"<>|]"), "_").take(200)
-
-                android.widget.Toast.makeText(context, "Downloading $safeName…", android.widget.Toast.LENGTH_SHORT).show()
-
-                Thread {
-                    try {
-                        val client = OkHttpClient()
-                        val request = Request.Builder()
-                            .url(url)
-                            .header("Cookie", cookies)
-                            .header("User-Agent", userAgent)
-                            .build()
-
-                        val response = client.newCall(request).execute()
-                        if (!response.isSuccessful) {
-                            Handler(context.mainLooper).post {
-                                android.widget.Toast.makeText(context, "Download failed: server returned ${response.code}", android.widget.Toast.LENGTH_LONG).show()
-                            }
-                            return@Thread
-                        }
-
-                        val body = response.body ?: run {
-                            Handler(context.mainLooper).post {
-                                android.widget.Toast.makeText(context, "Download failed: empty response", android.widget.Toast.LENGTH_LONG).show()
-                            }
-                            return@Thread
-                        }
-
-                        // Write to Downloads via MediaStore (compatible with API 24+)
-                        val resolver = context.contentResolver
-                        val contentValues = android.content.ContentValues().apply {
-                            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, safeName)
-                            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mimetype.ifBlank { "application/octet-stream" })
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
-                            }
-                        }
-                        val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            android.provider.MediaStore.Downloads.getContentUri(
-                                android.provider.MediaStore.VOLUME_EXTERNAL_PRIMARY
-                            )
-                        } else {
-                            android.provider.MediaStore.Files.getContentUri("external")
-                        }
-                        val itemUri = resolver.insert(collection, contentValues) ?: run {
-                            Handler(context.mainLooper).post {
-                                android.widget.Toast.makeText(context, "Download failed: couldn't create file", android.widget.Toast.LENGTH_LONG).show()
-                            }
-                            return@Thread
-                        }
-
-                        resolver.openOutputStream(itemUri)?.use { out ->
-                            body.byteStream().copyTo(out)
-                        }
-
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                            contentValues.clear()
-                            contentValues.put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
-                            resolver.update(itemUri, contentValues, null, null)
-                        }
-
-                        Handler(context.mainLooper).post {
-                            android.widget.Toast.makeText(context, "✅ Saved to Downloads: $safeName", android.widget.Toast.LENGTH_LONG).show()
-                        }
-
-                    } catch (e: Exception) {
-                        Handler(context.mainLooper).post {
-                            android.widget.Toast.makeText(context, "Download error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
-                        }
+            setDownloadListener { url, _, _, _, _ ->
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
-                }.start()
+                    browserLaunched = true
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(context, "Cannot open: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+                }
             }
 
             webViewClient = object : WebViewClient() {
@@ -2906,6 +2839,12 @@ fun PortalScreen() {
                 Lifecycle.Event.ON_RESUME -> {
                     webView.onResume()
                     webView.resumeTimers()
+                    if (browserLaunched) {
+                        Handler(context.mainLooper).post {
+                            browserLaunched = false
+                            if (webView.canGoBack()) webView.goBack()
+                        }
+                    }
                 }
                 Lifecycle.Event.ON_PAUSE -> {
                     webView.onPause()
