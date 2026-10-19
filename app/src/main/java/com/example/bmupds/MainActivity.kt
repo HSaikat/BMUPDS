@@ -918,27 +918,62 @@ private val INJECT_JS = """
       }
       .oe_enterprise_submit button[name="submit"]:active { opacity: 0.9 !important; }
 
-      /* ── PF26 SALARY FORM (server-rendered new layout) ───────── */
+      /* ── PF26 SALARY BILL VIEW (server-rendered new layout) ─────── */
       #pf26 { font-family: var(--fn-bn) !important; }
-      #pf26 .pf-logo { display: block !important; width: 100% !important; height: auto !important; max-height: 90px !important; object-fit: contain !important; margin-bottom: 10px !important; }
+      #pf26 img.pf-logo { display: block !important; width: 100% !important; height: auto !important; max-height: 80px !important; object-fit: contain !important; margin-bottom: 10px !important; }
       #pf26 .pf-card { background: var(--white) !important; border: 1px solid var(--border) !important; border-radius: var(--r-xl) !important; overflow: hidden !important; margin-bottom: 10px !important; box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important; }
-      #pf26 .pf-h { padding: 12px 16px !important; border-bottom: 1px solid var(--border) !important; background: var(--bg) !important; }
+      #pf26 .pf-h { padding: 12px 16px !important; border-bottom: 1px solid var(--border) !important; background: var(--bg) !important; display: flex !important; align-items: center !important; justify-content: space-between !important; }
       #pf26 .pf-h h3 { font-size: 13px !important; font-family: var(--fn-bn) !important; font-weight: 700 !important; color: var(--text) !important; margin: 0 !important; }
       #pf26 .pf-b { padding: 12px 16px !important; }
+      /* earnings/deductions two-column → single column on mobile */
+      #pf26 .pf-two { display: grid !important; grid-template-columns: 1fr !important; gap: 0 !important; }
+      /* net pay block */
       #pf26 .pf-net { background: #e8f5e9 !important; border: 1px solid #a5d6a7 !important; border-radius: var(--r-xl) !important; padding: 16px !important; margin-bottom: 10px !important; }
       #pf26 .pf-nl { font-size: 13px !important; font-weight: 700 !important; color: #1b5e20 !important; margin-bottom: 6px !important; }
       #pf26 .pf-netv { font-size: 24px !important; font-weight: 700 !important; color: #1b5e20 !important; font-family: var(--fn-en) !important; }
       #pf26 .pf-w { font-size: 13px !important; color: var(--text) !important; margin-top: 8px !important; }
+      /* employee info section */
+      #pf26 .pf-who { display: flex !important; flex-wrap: wrap !important; align-items: flex-start !important; justify-content: space-between !important; gap: 8px !important; padding-bottom: 10px !important; margin-bottom: 10px !important; border-bottom: 1px solid var(--border) !important; }
       #pf26 .pf-name { font-size: 16px !important; font-weight: 700 !important; }
       #pf26 .pf-badge { font-size: 12px !important; background: #e8f5e9 !important; border: 1px solid #a5d6a7 !important; color: #1b5e20 !important; border-radius: 999px !important; padding: 4px 12px !important; white-space: nowrap !important; }
+      /* detail columns (bill info + bank info) → single column on mobile */
+      #pf26 .pf-cols { display: grid !important; grid-template-columns: 1fr !important; gap: 6px 0 !important; }
       #pf26 .pf-grp dt { font-size: 12px !important; color: var(--text2) !important; }
       #pf26 .pf-grp dd { font-size: 13px !important; font-weight: 600 !important; }
       #pf26 .pf-t td, #pf26 .pf-t th { font-size: 13px !important; }
       #pf26 .pf-tot td { font-weight: 700 !important; background: #f1f6f2 !important; }
+      /* signature block → 2 cols (name + date) */
+      #pf26 .pf-sig { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 16px !important; }
       #pf26 .pf-sv { font-size: 13px !important; font-weight: 600 !important; }
       #pf26 .pf-sl { font-size: 11px !important; color: var(--text2) !important; }
       #pf26 .pf-st { font-size: 12px !important; color: var(--text2) !important; }
+      /* finance office pass block */
+      #pf26 .pf-pass { display: grid !important; grid-template-columns: auto 1fr !important; gap: 4px 12px !important; align-items: baseline !important; }
+      #pf26 .pf-pamt { font-size: 18px !important; font-weight: 700 !important; color: var(--text) !important; }
+      /* designation signature row → single column on mobile */
+      #pf26 .pf-desig { display: grid !important; grid-template-columns: 1fr !important; gap: 16px !important; margin-top: 24px !important; }
+      #pf26 .pf-foot { font-size: 12px !important; color: var(--text2) !important; margin-top: 10px !important; padding-top: 8px !important; border-top: 1px solid var(--border) !important; }
+      /* action buttons */
       #pf26 .pf-actions { display: flex !important; flex-wrap: wrap !important; gap: 10px !important; justify-content: center !important; align-items: center !important; padding: 12px 0 !important; }
+      #pf26 .pf-actions input[type=button], #pf26 .pf-actions input[type=submit] { width: 100% !important; max-width: 320px !important; padding: 13px 0 !important; font-size: 15px !important; font-weight: 700 !important; border-radius: 12px !important; cursor: pointer !important; }
+      #pf26 .pf-actions input[type=button] { background: var(--white) !important; color: var(--text) !important; border: 1px solid var(--border2) !important; }
+      #pf26 .pf-actions input[type=submit] { background: linear-gradient(135deg,#059669,#047857) !important; color: #fff !important; border: none !important; }
+
+      /* ── PAY FIXATION / WIDE TABLE PAGES ─────────────────────── */
+      .oe_form_sheet table, .oe_form_sheetbg table, td.oe_application table {
+        width: 100% !important; table-layout: auto !important;
+        word-break: break-word !important;
+      }
+      .oe_form_sheet td, .oe_form_sheetbg td, td.oe_application td {
+        white-space: normal !important; font-size: 12px !important;
+        padding: 5px 6px !important;
+      }
+      .oe_form_sheet th, .oe_form_sheetbg th, td.oe_application th {
+        white-space: normal !important; font-size: 12px !important;
+        padding: 5px 6px !important;
+      }
+      td.oe_application { overflow-x: hidden !important; }
+      .oe_form_sheetbg, .oe_form_sheet { overflow-x: auto !important; }
     `;
     document.head.appendChild(st);
   }
@@ -951,57 +986,12 @@ private val INJECT_JS = """
   function rebuildSalaryPage() {
     if (!window.location.href.includes('salary_ration_money')) return;
 
-    /* ── NEW PATH: server already rendered #pf26 ── */
-    var pf26 = document.getElementById('pf26');
-    if (pf26) {
-      if (pf26.dataset.bmuMobile) return;
-      pf26.dataset.bmuMobile = '1';
-
-      /* Inject mobile overrides scoped to #pf26 */
-      if (!document.getElementById('bmu-pf26-mobile')) {
-        var s = document.createElement('style');
-        s.id = 'bmu-pf26-mobile';
-        s.textContent = `
-          #pf26 { padding: 0 !important; margin: 0 !important; max-width: 100vw !important; }
-          #pf26 .pf-two { grid-template-columns: 1fr !important; gap: 10px !important; }
-          #pf26 .pf-cols { grid-template-columns: 1fr !important; gap: 8px !important; }
-          #pf26 .pf-info { grid-template-columns: 1fr 1fr !important; }
-          #pf26 .pf-extra { grid-template-columns: 1fr !important; gap: 10px !important; }
-          #pf26 .pf-net { grid-template-columns: 1fr !important; gap: 6px !important; }
-          #pf26 .pf-sig { grid-template-columns: 1fr 1fr !important; gap: 14px !important; }
-          #pf26 .pf-pass { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
-          #pf26 .pf-card { border-radius: 14px !important; margin-bottom: 10px !important; }
-          #pf26 .pf-top img.pf-logo { width: 100% !important; height: auto !important; max-height: 80px; object-fit: contain; }
-          #pf26 table.pf-t td, #pf26 table.pf-t th { white-space: normal !important; }
-          #pf26 .pf-who { flex-wrap: wrap !important; }
-          #pf26 .pf-netv { font-size: 22px !important; font-weight: 700 !important; color: var(--brand) !important; }
-          #pf26 .pf-desig { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--muted); margin-top: 8px; }
-          #pf26 .pf-stmt { font-size: 13px; margin: 8px 0; }
-          #pf26 .pf-foot { font-size: 11px; color: var(--muted); margin-top: 10px; }
-        `;
-        document.head.appendChild(s);
-      }
-
-      /* Hide the legacy header user-card table (already shown in pf-who) */
-      var hdrTable = document.querySelector('table.oe_view_manager_header');
-      if (hdrTable) hdrTable.style.display = 'none';
-
-      /* Move #pf26 to be a direct child of oe_application for clean layout */
-      var appArea = document.querySelector('td.oe_application');
-      if (appArea && pf26.parentNode !== appArea) {
-        var wrapper = document.createElement('div');
-        wrapper.style.cssText = 'padding:12px;background:var(--bg,#f8fafc);';
-        appArea.insertBefore(wrapper, appArea.firstChild);
-        wrapper.appendChild(pf26);
-      }
-      return;
-    }
-
     /* ── LEGACY PATH: old table-scraped layout (unchanged below) ── */
     if (document.getElementById('bmu-salary-card')) return;
-    if (!window.location.href.includes('employee_salary_form_view') &&
-        !window.location.href.includes('employee_salary_form-3') &&
-        !window.location.href.includes('employee_salary_form_festival')) return;
+    if (!window.location.href.includes('employee_salary_form-3') &&
+        !window.location.href.includes('employee_salary_form_festival') &&
+        !window.location.href.includes('salary_money_monthly_list') &&
+        !window.location.href.includes('employee_salary_form')) return;
 
     var formBody = document.querySelector('.oe_view_manager_body');
     if (!formBody) return;
@@ -1229,19 +1219,19 @@ private val INJECT_JS = """
       url.includes('salary_money_festival_list') ||
       url.includes('salary_money_monthly_saved_list') ||
       url.includes('salary_money_future_fund') ||
-      url.includes('salary_money_monthly_list_by_status') ||
       url.includes('salary_money_monthly_returned_list') ||
-      url.includes('advance_report_user_salary');
+      url.includes('advance_report_user_salary') ||
+      url.includes('salary_money_monthly_list_by_status');
     if (!isSalaryList) return;
 
     var pageTitle = 'বেতন ও ভাতাদি', pageIcon = '💰', pageSub = 'salary_ration_money';
-    if (url.includes('salary_money_monthly_list_by_status'))  { pageTitle = 'বেতন ও ভাতার অবস্থা'; pageIcon = '📊'; }
-    else if (url.includes('salary_money_monthly_saved_list')) { pageTitle = 'সংরক্ষিত বিলের তালিকা'; pageIcon = '🗂️'; }
+    if (url.includes('salary_money_monthly_saved_list')) { pageTitle = 'সংরক্ষিত বিলের তালিকা'; pageIcon = '🗂️'; }
     else if (url.includes('salary_money_monthly_returned_list')) { pageTitle = 'বেতন ও ভাতাদি পুনরায় প্রেরণ'; pageIcon = '↩️'; }
     else if (url.includes('salary_money_monthly_list'))       { pageTitle = 'প্রক্রিয়াধীন বেতন ও ভাতা'; pageIcon = '📋'; }
     else if (url.includes('salary_money_festival_list'))      { pageTitle = 'প্রক্রিয়াধীন উৎসব ভাতা'; pageIcon = '🎉'; }
     else if (url.includes('salary_money_future_fund'))        { pageTitle = 'ভবিষ্যৎ তহবিল'; pageIcon = '🏦'; }
     else if (url.includes('advance_report_user_salary'))      { pageTitle = 'রিপোর্ট'; pageIcon = '📑'; pageSub = 'Advance Reporting'; }
+    else if (url.includes('salary_money_monthly_list_by_status')) { pageTitle = 'বেতন ও ভাতার অবস্থা'; pageIcon = '📊'; pageSub = 'salary_ration_money'; }
 
     function ct(td) { if (!td) return ''; return td.textContent.replace(/\s+/g, ' ').trim(); }
     function statusClass(text) {
@@ -1383,27 +1373,40 @@ private val INJECT_JS = """
           rowCard.appendChild(gridDiv);
         }
         var foundAction = false;
-        for (var ci = 0; ci < cells.length; ci++) {
-          var aLink = cells[ci].querySelector('a[href]');
-          if (aLink && aLink.href && !aLink.href.includes('#') && !aLink.href.endsWith('/')) {
-            var actionBtn = document.createElement('a');
-            actionBtn.className = 'bmu-list-row-action';
-            actionBtn.href = aLink.href;
-            actionBtn.textContent = 'বিস্তারিত দেখুন →';
-            rowCard.appendChild(actionBtn);
-            foundAction = true;
-            break;
+        /* first try DoNav — check <tr onclick>, then any <span onclick> in cells */
+        var doNavId = null;
+        var onclickPre = row.getAttribute('onclick') || '';
+        var idMatchPre = onclickPre.match(/DoNav\s*\(\s*['"]?(\d+)['"]?\s*\)/);
+        if (idMatchPre) {
+          doNavId = idMatchPre[1];
+        } else {
+          var spans = row.querySelectorAll('span[onclick]');
+          for (var si = 0; si < spans.length; si++) {
+            var spanMatch = (spans[si].getAttribute('onclick') || '').match(/DoNav\s*\(\s*['"]?(\d+)['"]?\s*\)/);
+            if (spanMatch) { doNavId = spanMatch[1]; break; }
           }
         }
+        if (doNavId) {
+          var doNavBtnPre = document.createElement('a');
+          doNavBtnPre.className = 'bmu-list-row-action';
+          doNavBtnPre.href = 'javascript:DoNav(' + doNavId + ')';
+          doNavBtnPre.textContent = 'বিস্তারিত দেখুন →';
+          rowCard.appendChild(doNavBtnPre);
+          foundAction = true;
+        }
+        /* fallback: any <a href> in cells that is not a pay_fixation link */
         if (!foundAction) {
-          var onclick = row.getAttribute('onclick') || '';
-          var idMatch = onclick.match(/DoNav\s*\(\s*['"]?(\d+)['"]?\s*\)/);
-          if (idMatch) {
-            var doNavBtn = document.createElement('a');
-            doNavBtn.className = 'bmu-list-row-action';
-            doNavBtn.href = 'javascript:DoNav(' + idMatch[1] + ')';
-            doNavBtn.textContent = 'বিস্তারিত দেখুন →';
-            rowCard.appendChild(doNavBtn);
+          for (var ci = 0; ci < cells.length; ci++) {
+            var aLink = cells[ci].querySelector('a[href]');
+            if (aLink && aLink.href && !aLink.href.includes('#') && !aLink.href.endsWith('/') && !aLink.href.includes('pay_fixation')) {
+              var actionBtn = document.createElement('a');
+              actionBtn.className = 'bmu-list-row-action';
+              actionBtn.href = aLink.href;
+              actionBtn.textContent = 'বিস্তারিত দেখুন →';
+              rowCard.appendChild(actionBtn);
+              foundAction = true;
+              break;
+            }
           }
         }
         outerCard.appendChild(rowCard);
@@ -1417,6 +1420,315 @@ private val INJECT_JS = """
       var viewBody = appArea.querySelector('.oe_view_manager_body');
       if (viewBody) viewBody.insertBefore(outerCard, viewBody.firstChild);
       else appArea.insertBefore(outerCard, appArea.firstChild);
+    }
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     14. BLL SALARY BILL FORM REBUILDER
+     Detects the old-style salary bill entry form (bll page) and
+     rebuilds it into mobile cards. All inputs stay in the form.
+  ════════════════════════════════════════════════════════════════ */
+  function rebuildBllForm() {
+    if (document.getElementById('bmu-bll-card')) return;
+    // Detect by presence of #insert or #net_total without #pf26
+    var insertBtn = document.getElementById('insert') || document.getElementById('resend');
+    var netTotal  = document.getElementById('net_total');
+    if (!insertBtn || !netTotal || document.getElementById('pf26')) return;
+
+    var sheet = document.querySelector('.oe_form_sheet');
+    if (!sheet) return;
+
+    function el(tag, cls, txt) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (txt !== undefined) n.textContent = txt;
+      return n;
+    }
+    function txt(n) { return n ? (n.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
+    function val(id) { var e = document.getElementById(id); return e ? (e.value || '').trim() : ''; }
+
+    /* ── hide all original tables ── */
+    var allTables = Array.prototype.slice.call(sheet.querySelectorAll('table.oe_form_group'));
+    allTables.forEach(function(t) { t.style.display = 'none'; });
+    var allH = sheet.querySelectorAll('h1, h2');
+    Array.prototype.slice.call(allH).forEach(function(h) { h.style.display = 'none'; });
+
+    /* ── warning banner — keep visible, just restyle ── */
+    var banner = document.querySelector('.pf26-noprint[style*="#c62828"], .pf26-noprint[style*="c62828"]');
+
+    /* ── root ── */
+    var root = el('div');
+    root.id = 'bmu-bll-card';
+    root.style.cssText = 'padding:12px;background:var(--bg,#f8fafc);font-family:var(--fn-bn,sans-serif);';
+    sheet.insertBefore(root, sheet.firstChild);
+
+    /* ── warning banner ── */
+    if (banner) {
+      banner.style.cssText = 'display:block;margin:0 0 12px;padding:12px 14px;border-radius:12px;border:1px solid #f5c2c7;background:#fff5f5;color:#7f1d1d;font-size:13px;line-height:1.6;';
+      root.appendChild(banner);
+    }
+
+    /* ── employee info card ── */
+    var infoCard = el('div');
+    infoCard.style.cssText = 'background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:16px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05);';
+    var infoHeader = el('div');
+    infoHeader.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border,#e2e8f0);background:var(--bg,#f8fafc);font-size:12px;font-weight:700;color:var(--text2,#475569);text-transform:uppercase;letter-spacing:0.5px;';
+    infoHeader.textContent = 'সাধারণ তথ্য';
+    infoCard.appendChild(infoHeader);
+
+    var infoGrid = el('div');
+    infoGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;';
+    var infoFields = [
+      ['নাম', val('PDS_ID') ? '' : '', 'name_display'],
+      ['পিডিএস নং', val('PDS_ID'), ''],
+      ['মাস / বছর', '', 'month_yr'],
+      ['ভলিউম / পেজ', val('volume') + ' / ' + val('page'), ''],
+      ['ব্যাংক হিসাব', val('account_no'), ''],
+      ['শাখা', '', 'branch_display'],
+    ];
+
+    /* pull actual text values from the hidden original tables */
+    var origRows = [];
+    allTables.forEach(function(t) {
+      var rows = t.querySelectorAll('tr.oe_form_group_row');
+      Array.prototype.slice.call(rows).forEach(function(r) { origRows.push(r); });
+    });
+
+    var metaMap = {};
+    origRows.forEach(function(row) {
+      var cells = row.cells;
+      if (!cells || cells.length < 2) return;
+      for (var i = 0; i + 1 < cells.length; i += 2) {
+        var lbl = txt(cells[i]).replace(/[:：\s]+$/, '');
+        if (!lbl || lbl.length < 2) continue;
+        var valEl = cells[i + 1];
+        var valTxt = txt(valEl);
+        var inp = valEl.querySelector('input[type=text], input[type=hidden]');
+        if (!valTxt && inp) valTxt = inp.value || '';
+        if (valTxt && valTxt !== '\u00a0') metaMap[lbl] = valTxt;
+      }
+    });
+
+    var metaDisplay = [
+      ['নাম', metaMap['নাম'] || ''],
+      ['পিডিএস নং', metaMap['পিডিএস নং'] || val('PDS_ID')],
+      ['পদবী', metaMap['পদবী'] || ''],
+      ['বিভাগ/অফিস', metaMap['বিভাগ/অফিস'] || ''],
+      ['মাস', metaMap['মাস'] || ''],
+      ['বছর', metaMap['বছর'] || ''],
+      ['ব্যাংকের নাম', metaMap['ব্যাংকের নাম'] || ''],
+      ['শাখা', metaMap['শাখা'] || ''],
+      ['ব্যাংক হিসাব নং', metaMap['ব্যাংক হিসাব নং'] || val('account_no')],
+      ['ভলিউম', metaMap['ভলিউম'] || val('volume')],
+      ['পেজ', metaMap['পেজ'] || val('page')],
+      ['জন্ম তারিখ', metaMap['জন্ম তারিখ'] || ''],
+    ];
+
+    metaDisplay.forEach(function(pair, idx) {
+      if (!pair[1]) return;
+      var cell = el('div');
+      cell.style.cssText = 'padding:9px 12px;border-right:' + (idx % 2 === 0 ? '1px solid var(--border,#e2e8f0)' : 'none') + ';border-bottom:1px solid var(--border,#e2e8f0);min-width:0;';
+      var lbl = el('span', '', pair[0]);
+      lbl.style.cssText = 'display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;color:var(--text3,#94a3b8);margin-bottom:2px;';
+      var v = el('span', '', pair[1]);
+      v.style.cssText = 'display:block;font-size:13px;font-weight:600;color:var(--text,#0f172a);word-break:break-word;';
+      cell.appendChild(lbl); cell.appendChild(v);
+      infoGrid.appendChild(cell);
+    });
+    infoCard.appendChild(infoGrid);
+    root.appendChild(infoCard);
+
+    /* ── earnings card ── */
+    function buildSection(title, color, fields) {
+      var card = el('div');
+      card.style.cssText = 'background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:16px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,0.05);';
+      var hdr = el('div');
+      hdr.style.cssText = 'padding:10px 14px;border-bottom:1px solid var(--border,#e2e8f0);background:var(--bg,#f8fafc);font-size:12px;font-weight:700;color:' + color + ';text-transform:uppercase;letter-spacing:0.5px;';
+      hdr.textContent = title;
+      card.appendChild(hdr);
+      fields.forEach(function(f) {
+        var inp = document.getElementById(f.id);
+        if (!inp) return;
+        var row = el('div');
+        var isZero = parseFloat(inp.value || '0') === 0;
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid #f1f5f9;' + (isZero ? 'opacity:0.45;' : '');
+        var lbl = el('span', '', f.label);
+        lbl.style.cssText = 'font-size:13px;color:var(--text,#0f172a);flex:1;padding-right:10px;font-family:var(--fn-bn,sans-serif);';
+        inp.style.cssText = 'width:110px;text-align:right;font-size:14px;font-weight:600;padding:5px 8px;border:1px solid var(--border2,#cbd5e1);border-radius:8px;background:#fff;color:var(--text,#0f172a);font-family:var(--fn-en,sans-serif);';
+        if (f.extra) {
+          var wrap = el('div');
+          wrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-end;gap:4px;';
+          wrap.appendChild(inp);
+          /* GPF instalment number input */
+          var pctId = f.id.replace('general_fund_advance', 'general_fund_advance') + '_percentage';
+          if (f.pct) {
+            var pct = document.getElementById(f.pct);
+            if (pct) {
+              pct.style.cssText = 'width:80px;font-size:11px;padding:3px 6px;border:1px solid var(--border2,#cbd5e1);border-radius:6px;text-align:center;';
+              pct.placeholder = 'কিস্তি নং';
+              var pctLbl = el('span', '', 'কিস্তি নং');
+              pctLbl.style.cssText = 'font-size:10px;color:var(--text3,#94a3b8);';
+              wrap.appendChild(pctLbl);
+              wrap.appendChild(pct);
+            }
+          }
+          row.appendChild(lbl); row.appendChild(wrap);
+        } else {
+          row.appendChild(lbl); row.appendChild(inp);
+        }
+        card.appendChild(row);
+      });
+      return card;
+    }
+
+    var earnings = [
+      {id:'basic_salary',         label:'মূল বেতন'},
+      {id:'rent_allowance',        label:'বাড়ি ভাড়া'},
+      {id:'rent_allowance_advantage', label:'বাসস্থান সুবিধা'},
+      {id:'medical_allowance',     label:'চিকিৎসা ভাতা'},
+      {id:'education_allowance',   label:'শিক্ষা সহায়ক ভাতা'},
+      {id:'telephone_allowance',   label:'টেলিফোন ভাতা'},
+      {id:'honorarium_allowance',  label:'পারিতোষিক ভাতা'},
+      {id:'transport_allwance',    label:'যাতায়াত ভাতা'},
+      {id:'dress_allowance',       label:'পোশাক ভাতা'},
+      {id:'washing_allowance',     label:'ধোলাই ভাতা'},
+      {id:'risk_allowance',        label:'ঝুঁকি ভাতা'},
+      {id:'dean_allowance',        label:'দায়িত্ব ভাতা'},
+      {id:'entertainment_allowance', label:'আপ্যায়ন ভাতা'},
+      {id:'mohargho_allowance',    label:'মহার্ঘ্য ভাতা'},
+      {id:'convince',              label:'নন প্র্যাকটিসিং / ইনসেন্টিভ'},
+      {id:'festival_allowance',    label:'উৎসব ভাতা'},
+      {id:'frazzle_entertainment_allowance', label:'শ্রান্তি বিনোদন ভাতা'},
+      {id:'other_pending_allowance', label:'অন্যান্য বকেয়া ভাতা'},
+      {id:'tifin_allowance',       label:'টিফিন ভাতা'},
+      {id:'gpf_adv_deduction_refund', label:'জিপিএফ অগ্রীম কর্তন ফেরত'},
+      {id:'special_benefits',      label:'বিশেষ সুবিধা'},
+    ];
+
+    var deductions = [
+      {id:'general_fund',           label:'সাধারণ ভবিষ্যৎ তহবিল চাঁদা'},
+      {id:'general_fund_advance',   label:'জিপিএফ অগ্রিম পরিশোধ ১ম', pct:'general_fund_advance_percentage',   extra:true},
+      {id:'general_fund_advance2',  label:'জিপিএফ অগ্রিম পরিশোধ ২য়', pct:'general_fund_advance_2_percentage',  extra:true},
+      {id:'general_fund_advance3',  label:'জিপিএফ অগ্রিম পরিশোধ ৩য়', pct:'general_fund_advance_3_percentage',  extra:true},
+      {id:'general_fund_advance4',  label:'জিপিএফ অগ্রিম পরিশোধ ৪র্থ', pct:'general_fund_advance_4_percentage', extra:true},
+      {id:'welfare_fund',           label:'কল্যাণ তহবিল'},
+      {id:'joint_premium',          label:'যৌথ বীমা'},
+      {id:'rent_percent',           label:'বাড়ি ভাড়া কর্তন (%)'},
+      {id:'gas_percent',            label:'গ্যাস বিল কর্তন (%)'},
+      {id:'rent_percent_alw',       label:'বাড়ি ভাড়া ভাতার (%)'},
+      {id:'water_sanitation',       label:'পানি ও পয়ঃ প্রণালী'},
+      {id:'municipal_taxes',        label:'পৌর কর'},
+      {id:'building_repayments',    label:'গৃহ নির্মাণ অগ্রিম কিস্তি'},
+      {id:'motor_repayments',       label:'মোটর গাড়ি অগ্রিম কিস্তি'},
+      {id:'electric_bill_deduction', label:'বিদ্যুৎ বিল'},
+      {id:'income_tax_deduction',   label:'আয়কর কর্তন'},
+      {id:'other_interest',         label:'অন্যান্য অগ্রিম সুদ'},
+      {id:'computer_ad_repayment',  label:'অন্যান্য অগ্রিম কিস্তি'},
+      {id:'others_deduction',       label:'অন্যান্য কর্তন'},
+      {id:'due_cut',                label:'বকেয়া কর্তন'},
+      {id:'revenew_stamp',          label:'রেভিনিউ স্ট্যাম্প'},
+    ];
+
+    root.appendChild(buildSection('(ক) বেতন ও ভাতাদি', '#059669', earnings));
+
+    /* earnings total */
+    var totSal = document.getElementById('total_salary');
+    if (totSal) {
+      var totECard = el('div');
+      totECard.style.cssText = 'background:#e8f5e9;border:1px solid #a5d6a7;border-radius:14px;padding:12px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;';
+      var totELbl = el('span', '', 'সর্বমোট বেতন ও ভাতাদি (ক)');
+      totELbl.style.cssText = 'font-size:13px;font-weight:700;color:#1b5e20;';
+      totSal.style.cssText = 'width:120px;text-align:right;font-size:16px;font-weight:700;color:#1b5e20;border:1px solid #a5d6a7;border-radius:8px;padding:6px 10px;background:#fff;font-family:var(--fn-en,sans-serif);';
+      totECard.appendChild(totELbl); totECard.appendChild(totSal);
+      root.appendChild(totECard);
+    }
+
+    root.appendChild(buildSection('(খ) কর্তন সমূহ', '#dc2626', deductions));
+
+    /* deductions total */
+    var totDed = document.getElementById('total_deduction');
+    if (totDed) {
+      var totDCard = el('div');
+      totDCard.style.cssText = 'background:#fff5f5;border:1px solid #fca5a5;border-radius:14px;padding:12px 16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;';
+      var totDLbl = el('span', '', 'মোট কর্তন (খ)');
+      totDLbl.style.cssText = 'font-size:13px;font-weight:700;color:#991b1b;';
+      totDed.style.cssText = 'width:120px;text-align:right;font-size:16px;font-weight:700;color:#991b1b;border:1px solid #fca5a5;border-radius:8px;padding:6px 10px;background:#fff;font-family:var(--fn-en,sans-serif);';
+      totDCard.appendChild(totDLbl); totDCard.appendChild(totDed);
+      root.appendChild(totDCard);
+    }
+
+    /* net pay */
+    var netInp = document.getElementById('net_total');
+    if (netInp) {
+      var netCard = el('div');
+      netCard.style.cssText = 'background:var(--text,#0f172a);border-radius:16px;padding:18px 16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 4px 16px rgba(15,23,42,0.2);';
+      var netLblWrap = el('div');
+      var netLbl = el('span', '', 'নীট প্রদেয় বেতন (ক-খ)');
+      netLbl.style.cssText = 'display:block;font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:4px;';
+      var netWords = document.getElementById('pf26w1');
+      var netWordSpan = el('span', '', netWords ? netWords.textContent : '');
+      netWordSpan.style.cssText = 'display:block;font-size:12px;color:rgba(255,255,255,0.75);line-height:1.4;font-family:var(--fn-bn,sans-serif);';
+      netLblWrap.appendChild(netLbl); netLblWrap.appendChild(netWordSpan);
+      netInp.style.cssText = 'width:130px;text-align:right;font-size:22px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,0.25);border-radius:10px;padding:8px 12px;background:rgba(255,255,255,0.1);font-family:var(--fn-en,sans-serif);';
+      netCard.appendChild(netLblWrap); netCard.appendChild(netInp);
+      root.appendChild(netCard);
+      /* keep pf26w1 updated when net changes */
+      if (netWords) {
+        var origUpd = window.pf26Upd;
+        window.pf26Upd = function() {
+          if (origUpd) origUpd();
+          netWordSpan.textContent = netWords.textContent;
+        };
+      }
+    }
+
+    /* note + attachment + submit */
+    var noteInp = document.querySelector('textarea[name="note"]');
+    if (noteInp) {
+      var noteCard = el('div');
+      noteCard.style.cssText = 'background:#fff;border:1px solid var(--border,#e2e8f0);border-radius:14px;padding:14px;margin-bottom:10px;';
+      var noteLbl = el('div', '', 'NOTE');
+      noteLbl.style.cssText = 'font-size:11px;font-weight:700;color:var(--text2,#475569);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;';
+      noteInp.style.cssText = 'width:100%;min-height:72px;padding:8px 10px;border:1px solid var(--border2,#cbd5e1);border-radius:8px;font-size:13px;font-family:var(--fn-bn,sans-serif);resize:vertical;box-sizing:border-box;';
+      noteCard.appendChild(noteLbl); noteCard.appendChild(noteInp);
+      root.appendChild(noteCard);
+    }
+
+    var attachInp = document.querySelector('input[name="salaryAttachment"]');
+    if (attachInp) {
+      var attachCard = el('div');
+      attachCard.style.cssText = 'background:#fff;border:1px dashed var(--border2,#cbd5e1);border-radius:14px;padding:14px;margin-bottom:10px;';
+      var attachLbl = el('div', '', 'Attachment (প্রয়োজনে)');
+      attachLbl.style.cssText = 'font-size:11px;font-weight:700;color:var(--text2,#475569);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;';
+      attachCard.appendChild(attachLbl); attachCard.appendChild(attachInp);
+      root.appendChild(attachCard);
+    }
+
+    /* action buttons — centered */
+    var actionsDiv = el('div');
+    actionsDiv.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:4px;';
+
+    /* print button */
+    var printBtns = document.querySelectorAll('input[type=button][onclick*="print"]');
+    Array.prototype.slice.call(printBtns).forEach(function(pb) {
+      pb.style.cssText = 'padding:12px 24px;font-size:14px;font-weight:600;background:#fff;color:#0f172a;border:1px solid var(--border2,#cbd5e1);border-radius:12px;cursor:pointer;';
+      actionsDiv.appendChild(pb);
+    });
+
+    /* submit / resend button */
+    var submitBtns = document.querySelectorAll('input[name="insert"], input[name="resend"]');
+    Array.prototype.slice.call(submitBtns).forEach(function(sb) {
+      sb.style.cssText = 'padding:13px 28px;font-size:15px;font-weight:700;background:linear-gradient(135deg,#059669,#047857);color:#fff;border:none;border-radius:12px;cursor:pointer;box-shadow:0 4px 14px rgba(5,150,105,0.3);flex:1;max-width:280px;';
+      actionsDiv.appendChild(sb);
+    });
+
+    root.appendChild(actionsDiv);
+
+    /* also move the pay-fixation link if present */
+    var fixLink = document.querySelector('a[href*="pay_fixation"]');
+    if (fixLink) {
+      fixLink.style.cssText = 'display:inline-block;margin-top:10px;font-size:12px;color:#1b5e20;text-decoration:underline;';
+      root.appendChild(fixLink);
     }
   }
 
@@ -2233,6 +2545,22 @@ private val INJECT_JS = """
   }
 
   /* ════════════════════════════════════════════════════════════════
+     PF26 PRINT BUTTON WIRING
+     The server renders <input type="button" value="PRINT"> with no
+     onclick. Wire it up so it triggers window.print() in WebView.
+  ════════════════════════════════════════════════════════════════ */
+  function wirePf26PrintButton() {
+    var pf26 = document.getElementById('pf26');
+    if (!pf26) return;
+    var btns = pf26.querySelectorAll('.pf-actions input[type=button]');
+    Array.prototype.slice.call(btns).forEach(function(btn) {
+      if (!btn.getAttribute('onclick') && (btn.value === 'PRINT' || btn.value === 'Print' || btn.value === 'print')) {
+        btn.onclick = function() { window.print(); };
+      }
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════
      13. RUN ALL
   ════════════════════════════════════════════════════════════════ */
   function runAll() {
@@ -2243,6 +2571,8 @@ private val INJECT_JS = """
     buildIconGrid();
     rebuildSalaryPage();
     rebuildSalaryListPage();
+    rebuildBllForm();
+    wirePf26PrintButton();
     optimizePdsFormPage();
     enhanceAttendancePage();
   }
@@ -2336,7 +2666,9 @@ private val INJECT_JS = """
   ════════════════════════════════════════════════════════════════ */
   (function detectSubmitButton() {
     var url = window.location.href;
-    if (!url.includes('employee_salary_form-3') && !url.includes('salary_form')) return;
+    if (!url.includes('employee_salary_form-3') &&
+        !url.includes('salary_form') &&
+        !url.includes('salary_ration_money')) return;
     if (typeof Android === 'undefined') return;
     if (window._bmuSubmitHooked) return;
 
