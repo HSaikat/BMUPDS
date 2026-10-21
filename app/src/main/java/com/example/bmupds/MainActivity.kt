@@ -3000,7 +3000,7 @@ fun PortalScreen() {
                 displayZoomControls  = false
             }
 
-            addJavascriptInterface(WebAppInterface(context, this), "Android")
+            addJavascriptInterface(WebAppInterface(context), "Android")
 
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
@@ -3047,18 +3047,6 @@ fun PortalScreen() {
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                    // ── OFFLINE LOGIN INTERCEPT ─────────────────────────────────
-                    if (url != null && !url.startsWith("file://") &&
-                        url.contains("pds.bmu.ac.bd") &&
-                        (url.contains("/main/login.php") ||
-                         (url.contains("index.php") && url.contains("/main/")))
-                    ) {
-                        view?.stopLoading()
-                        view?.loadUrl("file:///android_asset/login.html")
-                        return
-                    }
-                    // ────────────────────────────────────────────────────────────
-
                     super.onPageStarted(view, url, favicon)
                     isLoading = true; isOffline = false
                     isPageNotFound = false
@@ -3116,29 +3104,6 @@ fun PortalScreen() {
                     view: WebView?,
                     request: WebResourceRequest?
                 ): Boolean {
-                    // If server redirected back to login (failed login), show error on local page
-                    val urlCheck = request?.url?.toString() ?: ""
-                    if (urlCheck.contains("pds.bmu.ac.bd") && urlCheck.contains("login.php") &&
-                        view?.url.orEmpty().startsWith("file://")
-                    ) {
-                        view?.evaluateJavascript("window.showLoginError('Invalid PDS ID or password.')", null)
-                        return true
-                    }
-
-                    // Intercept the login page and load local asset instead
-                    if (urlCheck.contains("pds.bmu.ac.bd") &&
-                        (urlCheck.contains("/main/login.php") || (urlCheck.contains("/user_mod/pages/home/index.php").not() &&
-                         request?.url?.path?.let {
-                             it.endsWith("login.php") || it.endsWith("index.php") && it.contains("main")
-                         } == true))
-                    ) {
-                        // Only intercept if not already on the local login asset
-                        if (!view?.url.orEmpty().startsWith("file://")) {
-                            view?.loadUrl("file:///android_asset/login.html")
-                            return true
-                        }
-                    }
-
                     val currentPage = view?.url?.let { Uri.parse(it) }
                     if (request?.isForMainFrame == false &&
                         currentPage?.host == "attendance.bmu.ac.bd" &&
@@ -3458,7 +3423,7 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
     }
 }
 
-class WebAppInterface(private val context: Context, private val webView: WebView? = null) {
+class WebAppInterface(private val context: Context) {
     @JavascriptInterface
     fun onBillSubmitted() {
         Thread {
@@ -3492,16 +3457,7 @@ class WebAppInterface(private val context: Context, private val webView: WebView
         return CalendarReminderHelper.isMutedForMonth(context)
     }
 
-    @JavascriptInterface
-    fun submitLogin(uid: String, pass: String) {
-        Handler(context.mainLooper).post {
-            val encoded = "uid=${Uri.encode(uid)}&pass=${Uri.encode(pass)}&action=login"
-            webView?.postUrl(
-                "https://pds.bmu.ac.bd/pds/user_mod/pages/main/login.php",
-                encoded.toByteArray(Charsets.UTF_8)
-            )
-        }
-    }
+
 }
 
 fun showReminderToast(context: Context, message: String) {

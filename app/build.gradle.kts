@@ -14,18 +14,28 @@ android {
 
     defaultConfig {
         applicationId = "com.example.bmupds"
-        minSdk = 24
-        targetSdk = 34
-        versionCode = 17
-        versionName = "6.0.2"
+        minSdk = 30
+        targetSdk = 35
+        versionCode = 18
+        versionName = "6.0.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+
+        ndk {
+            abiFilters.clear()
+            abiFilters.add("arm64-v8a")
+        }
+    }
+
+    androidResources {
+        localeFilters.addAll(listOf("en", "bn"))
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -53,8 +63,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.gson)
     implementation(libs.okhttp)
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
-    implementation("androidx.browser:browser:1.8.0")
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.browser)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)
     testImplementation(libs.junit)
