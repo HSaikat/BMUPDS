@@ -33,8 +33,7 @@
             </intent-filter>
         </activity>
 
-        <receiver android:name="androidx.work.impl.background.systemalarm.ConstraintProxy$BatteryChargingProxy"
-            android:enabled="false" android:exported="false"/>
+
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

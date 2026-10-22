@@ -3,7 +3,7 @@ package com.example.bmupds
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.ActivityNotFoundException
+
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -11,6 +11,7 @@ import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import androidx.core.net.toUri
 import android.net.http.SslError
 import android.os.Bundle
 import android.os.Build
@@ -83,7 +84,7 @@ import okhttp3.*
 import java.io.IOException
 
 private const val PORTAL_URL = "https://pds.bmu.ac.bd/pds/user_mod/pages/home/index.php"
-private var _deepUrl: String? = null
+private var deepUrl: String? = null
 
 private val INJECT_JS = """
 (function() {
@@ -292,6 +293,9 @@ private val INJECT_JS = """
         width: 100% !important; background: var(--white) !important;
         border-bottom: 1px solid var(--border) !important;
         box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important; table-layout: fixed !important;
+      }
+      body:not(.bmu-home) table.oe_view_manager_header {
+        display: none !important;
       }
       .oe_header_row_top { display: block !important; width: 100% !important; }
       .oe_header_row_top > td {
@@ -1349,8 +1353,10 @@ private val INJECT_JS = """
         rowCard.className = 'bmu-list-row-card';
         var monthText  = monthIdx  >= 0 && cells[monthIdx]  ? ct(cells[monthIdx])  : '';
         var netText    = netIdx    >= 0 && cells[netIdx]    ? ct(cells[netIdx])    : '';
+        var grossText  = grossIdx  >= 0 && cells[grossIdx]  ? ct(cells[grossIdx])  : '';
         var bonusText  = bonusIdx  >= 0 && cells[bonusIdx]  ? ct(cells[bonusIdx])  : '';
         var pfText     = pfIdx     >= 0 && cells[pfIdx]     ? ct(cells[pfIdx])     : '';
+        if (!monthText && !grossText && !netText && !bonusText && !pfText) return;
         var primaryRight = netText || bonusText || pfText;
         var primaryDiv = document.createElement('div');
         primaryDiv.className = 'bmu-list-row-primary';
@@ -2803,7 +2809,7 @@ class MainActivity : ComponentActivity() {
 
         intent?.getStringExtra(BmuPushNotifications.EXTRA_DEEP_URL)
             ?.let(BmuPushNotifications::safeDeepUrl)
-            ?.let { _deepUrl = it }
+            ?.let { deepUrl = it }
 
         setContent {
             MaterialTheme {
@@ -2814,6 +2820,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Deprecated("Deprecated in Java")
     @Suppress("DEPRECATION")
     override fun onRequestPermissionsResult(
         requestCode: Int,
@@ -2848,12 +2855,7 @@ fun GitHubUpdateChecker(context: Context) {
     val currentVersionCode = remember {
         try {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode.toInt()
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.versionCode
-            }
+            packageInfo.longVersionCode.toInt()
         } catch (e: Exception) {
             1
         }
@@ -2899,7 +2901,7 @@ fun GitHubUpdateChecker(context: Context) {
                     showDialog = false
                     val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as android.app.DownloadManager
                     val apkName = "BMU.PDS.apk"
-                    val request = android.app.DownloadManager.Request(Uri.parse(updateUrl)).apply {
+                    val request = android.app.DownloadManager.Request(updateUrl.toUri()).apply {
                         setTitle("BMU PDS Update")
                         setDescription("Downloading $apkName…")
                         setMimeType("application/vnd.android.package-archive")
@@ -2984,9 +2986,9 @@ fun PortalScreen() {
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
             settings.apply {
-                @Suppress("DEPRECATION") javaScriptEnabled = true
+                @Suppress("DEPRECATION")
+                javaScriptEnabled = true
                 domStorageEnabled    = true
-                databaseEnabled      = true
                 useWideViewPort      = true
                 loadWithOverviewMode = true
                 cacheMode            = WebSettings.LOAD_DEFAULT
@@ -3041,9 +3043,25 @@ fun PortalScreen() {
             }
 
             webViewClient = object : WebViewClient() {
-                @SuppressLint("WebViewClientOnReceivedSslError")
-                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                    handler?.proceed()
+                override fun onReceivedSslError(
+                    view: WebView?,
+                    handler: SslErrorHandler?,
+                    error: SslError?
+                ) {
+                    val host = error?.certificate?.issuedTo?.cName ?: ""
+                    val trusted = listOf("pds.bmu.ac.bd", "attendance.bmu.ac.bd")
+                    if (trusted.any { host == it || host.endsWith(".$it") }) {
+                        handler?.proceed()
+                    } else {
+                        handler?.cancel()
+                        val url = view?.url
+                        if (!url.isNullOrBlank()) {
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+                                context.startActivity(intent)
+                            } catch (_: Exception) { }
+                        }
+                    }
                 }
 
                 override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -3064,17 +3082,21 @@ fun PortalScreen() {
                     isLoading = false; isRefreshing = false
                     canGoBack = view?.canGoBack() ?: false
 
-                    if (!isDesktopMode) {
-                        view?.evaluateJavascript("""
-                            (function() {
-                                try {
-                                    $INJECT_JS
-                                    return "success";
-                                } catch (e) {
-                                    return "failed";
-                                }
-                            })()
-                        """.trimIndent()) { }
+                    if (!isDesktopMode && url != null) {
+                        val safeHosts = listOf("pds.bmu.ac.bd", "attendance.bmu.ac.bd")
+                        val pageHost = url.toUri().host ?: ""
+                        if (safeHosts.any { pageHost == it || pageHost.endsWith(".$it") }) {
+                            view?.evaluateJavascript("""
+                                (function() {
+                                    try {
+                                        $INJECT_JS
+                                        return "success";
+                                    } catch (e) {
+                                        return "failed";
+                                    }
+                                })()
+                            """.trimIndent()) { }
+                        }
                     }
 
                     view?.postDelayed({
@@ -3104,28 +3126,34 @@ fun PortalScreen() {
                     view: WebView?,
                     request: WebResourceRequest?
                 ): Boolean {
-                    val currentPage = view?.url?.let { Uri.parse(it) }
-                    if (request?.isForMainFrame == false &&
+                    val url = request?.url ?: return false
+                    val host = url.host ?: return true
+                    val allowed = listOf("pds.bmu.ac.bd", "attendance.bmu.ac.bd")
+                    if (!allowed.any { host == it || host.endsWith(".$it") }) {
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, url)
+                            context.startActivity(intent)
+                        } catch (_: Exception) { }
+                        return true
+                    }
+
+                    val currentPage = view?.url?.toUri()
+                    if (request.isForMainFrame == false &&
                         currentPage?.host == "attendance.bmu.ac.bd" &&
                         currentPage?.path == "/dashboard.php"
                     ) {
                         return false
                     }
 
-                    val url = request?.url?.toString() ?: ""
                     isLoading = true
                     isPageLoading = true
-                    view?.loadUrl(url)
+                    view?.loadUrl(url.toString())
                     canGoBack = view?.canGoBack() ?: false
-
-                    /* ── SALARY SUBMISSION DETECTION ────────────────────────────
-                       Handled via JS button hook and CalendarReminderHelper
-                    ──────────────────────────────────────────────────────────── */
 
                     return true
                 }
             }
-            loadUrl(_deepUrl?.also { _deepUrl = null } ?: PORTAL_URL)
+            loadUrl(deepUrl?.also { deepUrl = null } ?: PORTAL_URL)
         }
     }
 
@@ -3423,6 +3451,7 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
     }
 }
 
+@Suppress("unused")
 class WebAppInterface(private val context: Context) {
     @JavascriptInterface
     fun onBillSubmitted() {

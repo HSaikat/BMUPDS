@@ -16,15 +16,15 @@ android {
         applicationId = "com.example.bmupds"
         minSdk = 30
         targetSdk = 35
-        versionCode = 18
-        versionName = "6.0.3"
+        versionCode = 19
+        versionName = "7.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
         ndk {
             abiFilters.clear()
-            abiFilters.add("arm64-v8a")
+            abiFilters.addAll(listOf("arm64-v8a", "armeabi-v7a", "x86_64"))
         }
     }
 
