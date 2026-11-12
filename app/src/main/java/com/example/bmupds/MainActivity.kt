@@ -1,12 +1,12 @@
 package com.example.bmupds
 
-import android.Manifest
+
 import android.annotation.SuppressLint
 import android.app.Activity
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
+
 import android.graphics.Bitmap
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -2666,44 +2666,7 @@ private val INJECT_JS = """
   setTimeout(runAll, 400);
   setTimeout(runAll, 1200);
 
-  /* ════════════════════════════════════════════════════════════════
-     SALARY BILL SUBMISSION DETECTOR
-     Hooks the submit button on employee_salary_form-3 / salary_form.
-  ════════════════════════════════════════════════════════════════ */
-  (function detectSubmitButton() {
-    var url = window.location.href;
-    if (!url.includes('employee_salary_form-3') &&
-        !url.includes('salary_form') &&
-        !url.includes('salary_ration_money')) return;
-    if (typeof Android === 'undefined') return;
-    if (window._bmuSubmitHooked) return;
 
-    function hookSubmitBtn() {
-      // Look for the Send/Submit button — typically oe_highlight or contains 'send'/'acc' in text
-      var buttons = Array.prototype.slice.call(
-        document.querySelectorAll('.oe_highlight, .oe_button, button, input[type="submit"]')
-      );
-      var submitBtn = buttons.find(function(btn) {
-        var t = (btn.textContent || btn.value || '').toLowerCase();
-        return t.includes('send') || t.includes('acc') || t.includes('submit') ||
-               t.includes('পাঠান') || t.includes('অনুমোদন') || t.includes('প্রেরণ');
-      });
-
-      if (submitBtn && !submitBtn.dataset.bmuHooked) {
-        submitBtn.dataset.bmuHooked = '1';
-        submitBtn.addEventListener('click', function() {
-          setTimeout(function() {
-            Android.onBillSubmitted();
-          }, 1500); // slight delay to let the form submit first
-        });
-        window._bmuSubmitHooked = true;
-      }
-    }
-
-    hookSubmitBtn();
-    setTimeout(hookSubmitBtn, 800);
-    setTimeout(hookSubmitBtn, 2000);
-  })();
 
   /* ════════════════════════════════════════════════════════════════
      HIDE LOGIN PAGE PROMOTION / BACKGROUND HEADER
@@ -2789,23 +2752,7 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Request calendar permissions
-        if (checkSelfPermission(Manifest.permission.READ_CALENDAR)
-            != PackageManager.PERMISSION_GRANTED ||
-            checkSelfPermission(Manifest.permission.WRITE_CALENDAR)
-            != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(
-                arrayOf(
-                    Manifest.permission.READ_CALENDAR,
-                    Manifest.permission.WRITE_CALENDAR
-                ), 101
-            )
-        } else {
-            Thread {
-                CalendarReminderHelper.resetIfNewMonth(this)
-                CalendarReminderHelper.addSalaryReminders(this)
-            }.start()
-        }
+
 
         intent?.getStringExtra(BmuPushNotifications.EXTRA_DEEP_URL)
             ?.let(BmuPushNotifications::safeDeepUrl)
@@ -2820,24 +2767,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    @Deprecated("Deprecated in Java")
-    @Suppress("DEPRECATION")
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 101 &&
-            grantResults.isNotEmpty() &&
-            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-        ) {
-            Thread {
-                CalendarReminderHelper.resetIfNewMonth(this)
-                CalendarReminderHelper.addSalaryReminders(this)
-            }.start()
-        }
-    }
+
 }
 
 data class VersionInfo(
@@ -3002,7 +2932,7 @@ fun PortalScreen() {
                 displayZoomControls  = false
             }
 
-            addJavascriptInterface(WebAppInterface(context), "Android")
+            addJavascriptInterface(WebAppInterface(context, this), "Android")
 
             webChromeClient = object : WebChromeClient() {
                 override fun onShowFileChooser(
@@ -3452,45 +3382,44 @@ fun NoInternetScreen(isRefreshing: Boolean, onRetry: () -> Unit) {
 }
 
 @Suppress("unused")
-class WebAppInterface(private val context: Context) {
+class WebAppInterface(private val context: Context, private val webView: WebView? = null) {
     @JavascriptInterface
-    fun onBillSubmitted() {
-        Thread {
-            CalendarReminderHelper.submitAndScheduleNext(context)
-            showReminderToast(context, "বেতন বিল জমা হয়েছে। পরের মাসের রিমাইন্ডার সেট করা হয়েছে ✅")
-        }.start()
-    }
+    fun printPage() {
+        Handler(context.mainLooper).post {
+            // Temporarily expand viewport for full print layout
+            webView?.evaluateJavascript("""
+                (function(){
+                    var vm = document.querySelector('meta[name="viewport"]');
+                    if(vm){ vm._bmuPrev = vm.content; vm.content='width=1024'; }
+                })()
+            """.trimIndent(), null)
 
-    @JavascriptInterface
-    fun muteReminder() {
-        Thread {
-            CalendarReminderHelper.muteForMonth(context)
-            showReminderToast(context, "এই মাসের রিমাইন্ডার বন্ধ করা হয়েছে ✅")
-        }.start()
-    }
+            // Small delay to let the viewport change reflow before capture
+            Handler(context.mainLooper).postDelayed({
+                val printManager = context.getSystemService(Context.PRINT_SERVICE)
+                        as android.print.PrintManager
+                val printAdapter = webView?.createPrintDocumentAdapter("BMU_Salary_Slip")
+                    ?: return@postDelayed
+                printManager.print(
+                    "BMU Salary Slip",
+                    printAdapter,
+                    android.print.PrintAttributes.Builder()
+                        .setMediaSize(android.print.PrintAttributes.MediaSize.ISO_A4)
+                        .setResolution(android.print.PrintAttributes.Resolution("pdf", "pdf", 600, 600))
+                        .setMinMargins(android.print.PrintAttributes.Margins.NO_MARGINS)
+                        .build()
+                )
 
-    @JavascriptInterface
-    fun unmuteReminder() {
-        Thread {
-            CalendarReminderHelper.unmuteForMonth(context)
-            val msg = if (CalendarReminderHelper.isMutedForMonth(context))
-                "পরের মাস থেকে রিমাইন্ডার চালু হবে ✅"
-            else
-                "রিমাইন্ডার পুনরায় চালু করা হয়েছে ✅"
-            showReminderToast(context, msg)
-        }.start()
-    }
-
-    @JavascriptInterface
-    fun isReminderMuted(): Boolean {
-        return CalendarReminderHelper.isMutedForMonth(context)
-    }
-
-
-}
-
-fun showReminderToast(context: Context, message: String) {
-    Handler(context.mainLooper).post {
-        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                // Restore viewport after print dialog opens
+                Handler(context.mainLooper).postDelayed({
+                    webView?.evaluateJavascript("""
+                        (function(){
+                            var vm = document.querySelector('meta[name="viewport"]');
+                            if(vm && vm._bmuPrev){ vm.content = vm._bmuPrev; }
+                        })()
+                    """.trimIndent(), null)
+                }, 1000)
+            }, 300)
+        }
     }
 }
